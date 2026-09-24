@@ -407,7 +407,8 @@
       "project manager",
       "program manager",
       "pricing manager",
-      "strategy manager"
+      "strategy manager",
+      "stage -"
     ],
     "seniority_exclude_terms": [
       "senior",
@@ -424,7 +425,8 @@
       "enterprise account executive",
       "strategic account executive",
       "business development manager",
-      "commercial manager"
+      "commercial manager",
+      "responsable commercial"
     ],
     "allowed_supervision_title_terms": [
       "call center supervisor",
