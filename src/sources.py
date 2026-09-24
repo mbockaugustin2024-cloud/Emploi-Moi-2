@@ -94,6 +94,47 @@ def remoteok_jobs():
     return jobs
 
 
+
+
+def jobicy_jobs():
+    payload = get_json(
+        "https://jobicy.com/api/v2/remote-jobs",
+        params={"count": 100},
+    )
+    jobs = []
+    for j in payload.get("jobs", []) if isinstance(payload, dict) else []:
+        if not isinstance(j, dict) or not j.get("jobTitle") or not j.get("url"):
+            continue
+        salary = None
+        if j.get("salaryMin") or j.get("salaryMax"):
+            salary = (
+                f"{j.get('salaryMin') or ''} - {j.get('salaryMax') or ''} "
+                f"{j.get('salaryCurrency') or ''} "
+                f"{j.get('salaryPeriod') or ''}"
+            ).strip()
+        jobs.append(
+            {
+                "title": j.get("jobTitle"),
+                "company": j.get("companyName"),
+                "location": j.get("jobGeo") or "Remote",
+                "url": normalize_url(j.get("url")),
+                "description": j.get("jobDescription") or j.get("jobExcerpt") or "",
+                "publication_date": j.get("pubDate"),
+                "job_type": ", ".join(j.get("jobType") or [])
+                    if isinstance(j.get("jobType"), list)
+                    else j.get("jobType"),
+                "salary": salary,
+                "source_job_id": str(j.get("id") or j.get("jobSlug") or ""),
+                "source": "Jobicy",
+                "category": ", ".join(j.get("jobIndustry") or [])
+                    if isinstance(j.get("jobIndustry"), list)
+                    else str(j.get("jobIndustry") or "Remote"),
+                "remote": True,
+                "detected_language": None,
+            }
+        )
+    return jobs
+
 def arbeitnow_jobs(
     endpoint="https://www.arbeitnow.com/api/job-board-api",
     pages=2,
@@ -137,6 +178,7 @@ def fetch_all_sources():
     sources = [
         ("Remotive", remotive_jobs),
         ("Remote OK", remoteok_jobs),
+        ("Jobicy", jobicy_jobs),
         ("Arbeitnow", arbeitnow_jobs),
         (
             "Arbeitnow UK",
