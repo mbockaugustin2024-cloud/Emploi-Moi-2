@@ -423,18 +423,66 @@ def build_letter_pdf(job, ai_data=None):
     return build_pdf_from_story(story)
 
 
-def build_cv_pdf(job):
+def build_cv_pdf(job, ai_data=None):
     styles = getSampleStyleSheet()
     styles.add(
         ParagraphStyle(
             name="CVSmall",
             parent=styles["BodyText"],
             fontName="Helvetica",
-            fontSize=7.2,
-            leading=8.7,
-            spaceAfter=1.6,
+            fontSize=7.15,
+            leading=8.6,
+            spaceAfter=1.5,
         )
     )
+    styles.add(
+        ParagraphStyle(
+            name="CVHeading",
+            parent=styles["Heading4"],
+            fontName="Helvetica-Bold",
+            fontSize=8.2,
+            leading=9.2,
+            spaceBefore=4,
+            spaceAfter=2,
+        )
+    )
+
+    language = detect_language(job)
+    skills = (
+        ai_data.get("selected_skills", [])
+        if ai_data
+        else []
+    ) or matched_skills(job) or PROFILE["skills"][:8]
+
+    if language == "fr":
+        summary = (
+            (ai_data or {}).get("summary_fr")
+            or "Professionnel francophone de la relation client et des centres "
+               "d'appels, avec expérience en vente B2B, appels entrants et "
+               "sortants, suivi CRM, prospection, traitement des objections "
+               "et supervision."
+        )
+        language_line = (
+            "Français - langue maternelle / courant | "
+            "Anglais - débutant | Espagnol - débutant"
+        )
+        skills_heading = "COMPÉTENCES CLÉS"
+        experience_heading = "EXPÉRIENCE PROFESSIONNELLE"
+        education_heading = "FORMATION"
+        languages_heading = "LANGUES"
+    else:
+        summary = (
+            (ai_data or {}).get("summary_en")
+            or PROFILE["professional_profile"]
+        )
+        language_line = (
+            "French - Native / Fluent | "
+            "English - Beginner | Spanish - Beginner"
+        )
+        skills_heading = "CORE SKILLS"
+        experience_heading = "PROFESSIONAL EXPERIENCE"
+        education_heading = "EDUCATION"
+        languages_heading = "LANGUAGES"
 
     story = [
         Paragraph(
@@ -457,10 +505,13 @@ def build_cv_pdf(job):
             ),
             styles["CVSmall"],
         ),
+        Paragraph(html.escape(summary), styles["CVSmall"]),
+        Paragraph(html.escape(skills_heading), styles["CVHeading"]),
         Paragraph(
-            html.escape(PROFILE["professional_profile"]),
+            html.escape(" • ".join(skills[:8])),
             styles["CVSmall"],
         ),
+        Paragraph(html.escape(experience_heading), styles["CVHeading"]),
     ]
 
     experiences = [
@@ -509,6 +560,21 @@ def build_cv_pdf(job):
                 Paragraph("- " + html.escape(item), styles["CVSmall"])
             )
 
+    education = PROFILE["education"][0]
+    story.extend(
+        [
+            Paragraph(html.escape(education_heading), styles["CVHeading"]),
+            Paragraph(
+                html.escape(
+                    f"{education['qualification']} - {education['country']}"
+                ),
+                styles["CVSmall"],
+            ),
+            Paragraph(html.escape(languages_heading), styles["CVHeading"]),
+            Paragraph(html.escape(language_line), styles["CVSmall"]),
+        ]
+    )
+
     return build_pdf_from_story(story)
 
 
@@ -533,7 +599,7 @@ def generate_for_job(job, ai_data=None):
 
     cv_url = upload_bytes(
         cv_path,
-        build_cv_pdf(job),
+        build_cv_pdf(job, ai_data),
         "application/pdf",
     )
 
