@@ -97,10 +97,15 @@ def remoteok_jobs():
 def arbeitnow_jobs(
     endpoint="https://www.arbeitnow.com/api/job-board-api",
     pages=2,
+    extra_params=None,
+    visa_signal=False,
 ):
     jobs = []
     for page in range(1, pages + 1):
-        payload = get_json(endpoint, params={"page": page})
+        params = {"page": page}
+        if extra_params:
+            params.update(extra_params)
+        payload = get_json(endpoint, params=params)
         data = payload.get("data", []) if isinstance(payload, dict) else []
         if not data:
             break
@@ -120,6 +125,7 @@ def arbeitnow_jobs(
                     "category": ", ".join(j.get("tags") or []) or "General",
                     "remote": bool(j.get("remote")),
                     "detected_language": None,
+                    "visa_sponsorship_signal": visa_signal,
                 }
             )
     return jobs
