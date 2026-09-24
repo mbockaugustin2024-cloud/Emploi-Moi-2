@@ -29,6 +29,7 @@ def main():
 
     print(f"Offres à requalifier: {len(rows)}")
     changed = 0
+    eligible = []
 
     with ThreadPoolExecutor(max_workers=12) as executor:
         futures = [
@@ -41,6 +42,8 @@ def main():
             if row is None:
                 continue
             old_score = row.get("score")
+            if score >= 40:
+                eligible.append(row.get("title") or "Sans titre")
             if old_score == score:
                 continue
             supabase.table("jobs").update(
@@ -52,6 +55,9 @@ def main():
             changed += 1
 
     print(f"Scores modifiés: {changed}")
+    print(f"Offres >= 40 après requalification: {len(eligible)}")
+    for title in sorted(eligible)[:20]:
+        print(f"Éligible: {title}")
 
 
 if __name__ == "__main__":
