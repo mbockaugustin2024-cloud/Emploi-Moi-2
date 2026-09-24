@@ -19,6 +19,10 @@ supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 MAX_AGE_DAYS = PROFILE["job_preferences"]["maximum_job_age_days"]
 MIN_SCORE = PROFILE["job_preferences"]["minimum_match_score"]
 ROLE_TERMS = PROFILE["scoring"]["role_terms"]
+ROLE_FAMILIES = PROFILE["scoring"]["role_families"]
+TITLE_HARD_EXCLUDE_TERMS = tuple(PROFILE["scoring"]["title_hard_exclude_terms"])
+SENIORITY_EXCLUDE_TERMS = tuple(PROFILE["scoring"]["seniority_exclude_terms"])
+ALLOWED_SUPERVISION_TITLE_TERMS = tuple(PROFILE["scoring"]["allowed_supervision_title_terms"])
 EXPERIENCE_TERMS = PROFILE["scoring"]["experience_terms"]
 FRENCH_BONUS = PROFILE["scoring"]["french_bonus"]
 REMOTE_BONUS = PROFILE["scoring"]["remote_bonus"]
@@ -141,40 +145,56 @@ def active_status(job):
         return True
 
 
+def title_matches_family(title):
+    normalized = str(title or "").lower()
+    matches = []
+    for family in ROLE_FAMILIES:
+        if any(term.lower() in normalized for term in family["title_terms"]):
+            matches.append(family)
+    return matches
+
+
 def calculate_score(job):
     if not is_recent(job.get("publication_date")):
         return 0, ["date hors limite"]
+
+    title = str(job.get("title") or "")
+    title_lower = title.lower()
+
+    if any(term.lower() in title_lower for term in TITLE_HARD_EXCLUDE_TERMS):
+        return 0, ["métier hors profil"]
+
+    if (
+        any(term.lower() in title_lower for term in SENIORITY_EXCLUDE_TERMS)
+        and not any(term.lower() in title_lower for term in ALLOWED_SUPERVISION_TITLE_TERMS)
+    ):
+        return 0, ["niveau de poste trop senior/management pour le profil"]
+
+    families = title_matches_family(title)
+    if not families:
+        return 0, ["aucune famille de métier cible dans le titre"]
 
     searchable = " ".join(
         str(job.get(key) or "")
         for key in ("title", "description", "location", "detected_language")
     ).lower()
 
-    score = freshness_points(job.get("publication_date"))
-    reasons = []
-
-    role_hits = [
-        (term, points)
-        for term, points in ROLE_TERMS.items()
-        if term in searchable
+    score = max(family["points"] for family in families)
+    reasons = [
+        "métier: " + ", ".join(f["name"] for f in families[:2])
     ]
+
     experience_hits = [
         (term, points)
         for term, points in EXPERIENCE_TERMS.items()
         if term in searchable
     ]
+    experience_bonus = sum(points for _, points in experience_hits[:5])
+    score += min(experience_bonus, 25)
 
-    score += sum(points for _, points in role_hits)
-    score += sum(points for _, points in experience_hits)
-
-    if role_hits:
-        reasons.append(
-            "rôles: " + ", ".join(term for term, _ in role_hits[:4])
-        )
     if experience_hits:
         reasons.append(
-            "expérience: "
-            + ", ".join(term for term, _ in experience_hits[:5])
+            "expérience: " + ", ".join(term for term, _ in experience_hits[:5])
         )
 
     if any(term in searchable for term in FRENCH_TERMS):
@@ -207,6 +227,9 @@ def calculate_score(job):
     if ENGLISH_OPTIONAL.search(searchable):
         score += ENGLISH_OPTIONAL_BONUS
         reasons.append("anglais = plus/optionnel")
+
+    score += freshness_points(job.get("publication_date"))
+    reasons.append("fraîcheur")
 
     return max(0, min(round(score), 100)), reasons
 
