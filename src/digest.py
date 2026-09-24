@@ -74,7 +74,11 @@ def main():
         .execute()
     )
 
-    jobs = response.data or []
+    candidates = response.data or []
+    jobs = [
+        job for job in candidates
+        if job.get("cv_url") and job.get("cover_letter_url")
+    ]
 
     if not jobs:
         print("Aucune nouvelle offre éligible pour le digest.")
