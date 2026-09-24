@@ -1,2 +1,4 @@
 requests
 supabase
+python-docx
+reportlab
