@@ -17,6 +17,19 @@
       "Spanish": {
         "level": "beginner"
       }
+    },
+    "contact": {
+      "email": "mbockaugustin2024@gmail.com",
+      "phones": [
+        "+216 22 439 648",
+        "+216 22 645 827"
+      ]
+    },
+    "cv_privacy": {
+      "default_include_photo": false,
+      "exclude_birth_date_by_default": true,
+      "exclude_marital_status_by_default": true,
+      "exclude_gender_by_default": true
     }
   },
   "professional_profile": "French-speaking customer support and call center professional with experience in inbound and outbound calls, B2B sales, teleprospection, customer follow-up, CRM/database work, appointment confirmation, complaint handling and team supervision.",
@@ -40,7 +53,15 @@
       "location": "Tunis, Tunisia",
       "start": "2024-05",
       "end": "2026-01",
-      "skills": ["supervision", "performance monitoring", "training support", "appointment confirmation", "customer questions", "CRM/management system", "quality control"]
+      "skills": [
+        "supervision",
+        "performance monitoring",
+        "training support",
+        "appointment confirmation",
+        "customer questions",
+        "CRM/management system",
+        "quality control"
+      ]
     },
     {
       "title": "Call Center Agent / Customer Advisor",
@@ -48,7 +69,14 @@
       "location": "Tunis, Tunisia",
       "start": "2024-02",
       "end": "2024-04",
-      "skills": ["inbound calls", "outbound calls", "telesales", "customer support", "problem solving", "follow-up"]
+      "skills": [
+        "inbound calls",
+        "outbound calls",
+        "telesales",
+        "customer support",
+        "problem solving",
+        "follow-up"
+      ]
     },
     {
       "title": "Freelance Closer",
@@ -56,7 +84,14 @@
       "location": "Douala, Cameroon",
       "start": "2023-08",
       "end": "2023-12",
-      "skills": ["prospecting", "lead qualification", "objection handling", "negotiation", "contract closing", "after-sales follow-up"]
+      "skills": [
+        "prospecting",
+        "lead qualification",
+        "objection handling",
+        "negotiation",
+        "contract closing",
+        "after-sales follow-up"
+      ]
     },
     {
       "title": "Call Center Agent / Teleoperator",
@@ -64,7 +99,15 @@
       "location": "Douala, Cameroon",
       "start": "2023-03",
       "end": "2023-07",
-      "skills": ["inbound calls", "outbound calls", "prospecting", "sales", "customer loyalty", "customer follow-up", "database updates"]
+      "skills": [
+        "inbound calls",
+        "outbound calls",
+        "prospecting",
+        "sales",
+        "customer loyalty",
+        "customer follow-up",
+        "database updates"
+      ]
     },
     {
       "title": "Call Center Agent / Teleoperator",
@@ -72,7 +115,15 @@
       "location": "Douala, Cameroon",
       "start": "2022-06",
       "end": "2023-02",
-      "skills": ["inbound calls", "outbound calls", "telesales", "customer orientation", "product presentation", "competitor analysis", "daily reporting"]
+      "skills": [
+        "inbound calls",
+        "outbound calls",
+        "telesales",
+        "customer orientation",
+        "product presentation",
+        "competitor analysis",
+        "daily reporting"
+      ]
     },
     {
       "title": "Waiter",
@@ -80,7 +131,13 @@
       "location": "Douala, Cameroon",
       "start": "2021-08",
       "end": "2022-05",
-      "skills": ["customer service", "table service", "order taking", "cleanliness", "customer satisfaction"]
+      "skills": [
+        "customer service",
+        "table service",
+        "order taking",
+        "cleanliness",
+        "customer satisfaction"
+      ]
     },
     {
       "title": "Waiter & Receptionist",
@@ -88,7 +145,13 @@
       "location": "Yaounde, Cameroon",
       "start": "2020-09",
       "end": "2021-06",
-      "skills": ["customer reception", "service coordination", "complaint handling", "teamwork", "customer comfort"]
+      "skills": [
+        "customer reception",
+        "service coordination",
+        "complaint handling",
+        "teamwork",
+        "customer comfort"
+      ]
     }
   ],
   "education": [
