@@ -1,3 +1,4 @@
+import json
 import os
 import re
 from datetime import datetime, timezone
@@ -8,16 +9,26 @@ from supabase import create_client
 SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_SERVICE_ROLE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PROFILE_PATH = os.path.join(BASE_DIR, "config", "profile.json")
+
+with open(PROFILE_PATH, "r", encoding="utf-8") as profile_file:
+    PROFILE = json.load(profile_file)
+
 supabase = create_client(
     SUPABASE_URL,
     SUPABASE_SERVICE_ROLE_KEY
 )
 
 REMOTIVE_URL = "https://remotive.com/api/remote-jobs"
-MAX_AGE_DAYS = 90
-MIN_SCORE = 40
+MAX_AGE_DAYS = PROFILE["job_preferences"]["maximum_job_age_days"]
+MIN_SCORE = PROFILE["job_preferences"]["minimum_match_score"]
 
-PROFILE_ROLE_TERMS = {
+PROFILE_ROLE_TERMS = PROFILE["scoring"]["role_terms"]
+
+# Conservé ici pour compatibilité avec la logique existante ; les valeurs
+# principales du profil sont désormais externalisées dans profile.json.
+LEGACY_PROFILE_ROLE_TERMS = {
     "customer support": 22,
     "customer service": 22,
     "call center": 22,
@@ -37,7 +48,9 @@ PROFILE_ROLE_TERMS = {
     "remote": 8,
 }
 
-PROFILE_EXPERIENCE_TERMS = {
+PROFILE_EXPERIENCE_TERMS = PROFILE["scoring"]["experience_terms"]
+
+LEGACY_PROFILE_EXPERIENCE_TERMS = {
     "b2b": 6,
     "energy": 6,
     "crm": 6,
@@ -50,6 +63,11 @@ PROFILE_EXPERIENCE_TERMS = {
     "relaunch": 4,
     "sales": 4,
 }
+
+FRENCH_BONUS = PROFILE["scoring"]["french_bonus"]
+REMOTE_BONUS = PROFILE["scoring"]["remote_bonus"]
+RELOCATION_BONUS = PROFILE["scoring"]["relocation_bonus"]
+ENGLISH_OPTIONAL_BONUS = PROFILE["scoring"]["english_optional_bonus"]
 
 FRENCH_TERMS = (
     "french",
@@ -244,13 +262,13 @@ def calculate_score(job):
             score += points
 
     if any(term in searchable_text for term in FRENCH_TERMS):
-        score += 15
+        score += FRENCH_BONUS
 
     if any(term in searchable_text for term in REMOTE_TERMS):
-        score += 7
+        score += REMOTE_BONUS
 
     if any(term in searchable_text for term in RELOCATION_TERMS):
-        score += 8
+        score += RELOCATION_BONUS
 
     english_required = ENGLISH_HARD_REQUIRED.search(searchable_text)
     english_optional = ENGLISH_OPTIONAL.search(searchable_text)
@@ -259,7 +277,7 @@ def calculate_score(job):
         return 0
 
     if english_optional:
-        score += 3
+        score += ENGLISH_OPTIONAL_BONUS
 
     score += freshness_points(job.get("publication_date"))
 
