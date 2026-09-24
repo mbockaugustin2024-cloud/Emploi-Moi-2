@@ -3,7 +3,7 @@ name: Job Scanner
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 */6 * * *"
+    - cron: "30 * * * *"
 
 jobs:
   scan:
