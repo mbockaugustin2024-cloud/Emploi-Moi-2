@@ -27,6 +27,9 @@ jobs:
       - name: Installer les dépendances
         run: pip install -r requirements.txt
 
+      - name: Requalifier les offres existantes
+        run: python src/requalify.py
+
       - name: Scanner les offres
         run: python src/scanner.py
 
