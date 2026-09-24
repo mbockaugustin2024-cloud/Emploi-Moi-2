@@ -2,7 +2,7 @@ import html
 import json
 import os
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from io import BytesIO
 
 from docx import Document
@@ -530,12 +530,14 @@ def generate_for_job(job):
 
 
 def main():
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=90)).isoformat()
     rows = (
         supabase
         .table("jobs")
         .select("*")
         .eq("is_active", True)
         .gte("score", 40)
+        .gte("publication_date", cutoff)
         .limit(40)
         .execute()
         .data
