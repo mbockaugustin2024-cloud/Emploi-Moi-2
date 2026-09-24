@@ -145,6 +145,15 @@ def fetch_all_sources():
                 pages=2,
             ),
         ),
+        (
+            "Arbeitnow Visa Sponsorship",
+            lambda: arbeitnow_jobs(
+                "https://www.arbeitnow.com/api/job-board-api",
+                pages=2,
+                extra_params={"visa_sponsorship": "true"},
+                visa_signal=True,
+            ),
+        ),
     ]
     for name, fn in sources:
         try:
