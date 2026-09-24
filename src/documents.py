@@ -101,7 +101,7 @@ def relevant_experience(job):
 def make_cv(job, ai_data=None):
     language = detect_language(job)
     name = PROFILE["candidate"]["name"]
-    contact = PROFILE["candidate"]["contact"]
+    contact_email = os.environ.get(PROFILE["candidate"]["contact"]["email_env"], "")
     target_role = plain(job.get("title")) or "Customer Support / Call Center"
     skills = matched_skills(job)
     experiences = relevant_experience(job)
@@ -172,8 +172,7 @@ def make_cv(job, ai_data=None):
 
     doc.add_paragraph(
         f"{PROFILE['candidate']['current_location']} | "
-        f"{contact['phones'][0]} / {contact['phones'][1]} | "
-        f"{contact['email']}"
+        f"{contact_email}"
     )
 
     p = doc.add_paragraph(sections["summary"])
@@ -499,9 +498,7 @@ def build_cv_pdf(job, ai_data=None):
         Paragraph(
             html.escape(
                 f"{PROFILE['candidate']['current_location']} | "
-                f"{PROFILE['candidate']['contact']['email']} | "
-                f"{PROFILE['candidate']['contact']['phones'][0]} / "
-                f"{PROFILE['candidate']['contact']['phones'][1]}"
+                f"{os.environ.get(PROFILE['candidate']['contact']['email_env'], '')}"
             ),
             styles["CVSmall"],
         ),
