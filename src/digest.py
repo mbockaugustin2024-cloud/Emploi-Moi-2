@@ -8,8 +8,7 @@ from supabase import create_client
 SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_SERVICE_ROLE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
 BREVO_API_KEY = os.environ["BREVO_API_KEY"]
-BREVO_SENDER_EMAIL = os.environ["BREVO_SENDER_EMAIL"]
-BREVO_RECIPIENT_EMAIL = os.environ["BREVO_RECIPIENT_EMAIL"]
+BREVO_EMAIL = os.environ["BREVO_EMAIL"]
 
 MIN_SCORE = 40
 
@@ -108,12 +107,12 @@ def main():
 
     payload = {
         "sender": {
-            "email": BREVO_SENDER_EMAIL,
+            "email": BREVO_EMAIL,
             "name": "Emploi-Moi"
         },
         "to": [
             {
-                "email": BREVO_RECIPIENT_EMAIL
+                "email": BREVO_EMAIL
             }
         ],
         "subject": f"Emploi-Moi — {len(jobs)} nouvelle(s) offre(s)",
