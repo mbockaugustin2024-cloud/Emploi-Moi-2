@@ -80,6 +80,20 @@ REMOTE_TERMS = (
     "fully remote",
     "100% remote",
 )
+NON_TARGET_LANGUAGES = (
+    "german","italian","spanish","polish","dutch","portuguese",
+    "swedish","norwegian","danish","finnish","greek","czech",
+    "hungarian","romanian","arabic","mandarin","chinese",
+    "japanese","korean","turkish"
+)
+MULTI_LANGUAGE_TITLE_RE = re.compile(
+    r"\b(?:" + "|".join(NON_TARGET_LANGUAGES) + r")\b"
+    r".{0,25}\b(?:speaker|speaking|language)\b"
+    r"|\b(?:speaker|speaking|language)\b.{0,25}\b(?:" + "|".join(NON_TARGET_LANGUAGES) + r")\b"
+    r"|\b(?:french|english)\s*/\s*(?:" + "|".join(NON_TARGET_LANGUAGES) + r")\b"
+    r"|\b(?:" + "|".join(NON_TARGET_LANGUAGES) + r")\s*/\s*(?:french|english)\b",
+    re.I,
+)
 RELOCATION_TERMS = (
     "relocation",
     "visa sponsorship",
@@ -146,11 +160,16 @@ def active_status(job):
         return True
 
 
+def term_matches(text, term):
+    pattern = r"(?<!\w)" + re.escape(str(term)).replace(r"\ ", r"\s+") + r"(?!\w)"
+    return re.search(pattern, str(text or ""), re.I) is not None
+
+
 def title_matches_family(title):
-    normalized = str(title or "").lower()
+    normalized = str(title or "")
     matches = []
     for family in ROLE_FAMILIES:
-        if any(term.lower() in normalized for term in family["title_terms"]):
+        if any(term_matches(normalized, term) for term in family["title_terms"]):
             matches.append(family)
     return matches
 
@@ -162,16 +181,16 @@ def calculate_score(job):
     title = str(job.get("title") or "")
     title_lower = title.lower()
 
-    if any(term.lower() in title_lower for term in TITLE_HARD_EXCLUDE_TERMS):
+    if any(term_matches(title, term) for term in TITLE_HARD_EXCLUDE_TERMS):
         return 0, ["métier hors profil"]
 
     if (
-        any(term.lower() in title_lower for term in SENIORITY_EXCLUDE_TERMS)
-        and not any(term.lower() in title_lower for term in ALLOWED_SUPERVISION_TITLE_TERMS)
+        any(term_matches(title, term) for term in SENIORITY_EXCLUDE_TERMS)
+        and not any(term_matches(title, term) for term in ALLOWED_SUPERVISION_TITLE_TERMS)
     ):
         return 0, ["niveau de poste trop senior/management pour le profil"]
 
-    if any(pattern.lower() in title_lower for pattern in HARD_LANGUAGE_PATTERNS):
+    if any(term_matches(title, pattern) for pattern in HARD_LANGUAGE_PATTERNS) or MULTI_LANGUAGE_TITLE_RE.search(title):
         return 0, ["langue supplémentaire exigée au poste"]
 
     families = title_matches_family(title)
@@ -191,7 +210,7 @@ def calculate_score(job):
     experience_hits = [
         (term, points)
         for term, points in EXPERIENCE_TERMS.items()
-        if term in searchable
+        if term_matches(searchable, term)
     ]
     experience_bonus = sum(points for _, points in experience_hits[:5])
     score += min(experience_bonus, 25)
@@ -201,18 +220,18 @@ def calculate_score(job):
             "expérience: " + ", ".join(term for term, _ in experience_hits[:5])
         )
 
-    if any(term in searchable for term in FRENCH_TERMS):
+    if any(term_matches(searchable, term) for term in FRENCH_TERMS):
         score += FRENCH_BONUS
         reasons.append("français")
 
-    if any(term in searchable for term in REMOTE_TERMS) or job.get("remote"):
+    if any(term_matches(searchable, term) for term in REMOTE_TERMS) or job.get("remote"):
         score += REMOTE_BONUS
         reasons.append("remote")
 
     if job.get("visa_sponsorship_signal"):
         score += RELOCATION_BONUS
         reasons.append("visa sponsorship signalisée par la source")
-    elif any(term in searchable for term in RELOCATION_TERMS):
+    elif any(term_matches(searchable, term) for term in RELOCATION_TERMS):
         score += RELOCATION_BONUS
         reasons.append("relocation/visa mentionnée")
 
