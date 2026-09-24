@@ -259,7 +259,172 @@
       "15_30_days": 8,
       "31_60_days": 5,
       "61_90_days": 2
-    }
+    },
+    "role_families": [
+      {
+        "name": "customer_support",
+        "title_terms": [
+          "customer support",
+          "customer service",
+          "customer care",
+          "customer advisor",
+          "customer representative",
+          "customer success",
+          "call center",
+          "call-centre",
+          "call centre",
+          "helpdesk",
+          "service client",
+          "support client",
+          "conseiller client",
+          "relation client",
+          "téléconseiller",
+          "teleconseiller"
+        ],
+        "points": 32
+      },
+      {
+        "name": "sales_teleprospection",
+        "title_terms": [
+          "teleprospection",
+          "teleprospector",
+          "telesales",
+          "inside sales",
+          "sales development representative",
+          "sales development",
+          "business development representative",
+          "business development",
+          "sdr",
+          "bdr",
+          "sales representative",
+          "sales advisor",
+          "commercial"
+        ],
+        "points": 30
+      },
+      {
+        "name": "hospitality",
+        "title_terms": [
+          "waiter",
+          "waitress",
+          "server",
+          "restaurant",
+          "hospitality",
+          "hotel",
+          "receptionist",
+          "reception",
+          "serveur",
+          "réceptionniste",
+          "hôtellerie",
+          "restauration"
+        ],
+        "points": 28
+      },
+      {
+        "name": "logistics",
+        "title_terms": [
+          "warehouse worker",
+          "warehouse associate",
+          "warehouse operative",
+          "warehouse assistant",
+          "picker",
+          "packer",
+          "order picker",
+          "material handler",
+          "logistics assistant",
+          "logistics operative",
+          "manutention",
+          "magasinier"
+        ],
+        "points": 26
+      },
+      {
+        "name": "agriculture",
+        "title_terms": [
+          "farm worker",
+          "farm hand",
+          "agricultural worker",
+          "agriculture worker",
+          "fruit picker",
+          "harvest worker",
+          "seasonal farm worker",
+          "ouvrier agricole",
+          "agriculture saisonnière"
+        ],
+        "points": 24
+      },
+      {
+        "name": "cleaning",
+        "title_terms": [
+          "cleaner",
+          "cleaning operative",
+          "housekeeper",
+          "housekeeping",
+          "room attendant",
+          "janitor",
+          "agent d'entretien",
+          "nettoyeur"
+        ],
+        "points": 22
+      }
+    ],
+    "title_hard_exclude_terms": [
+      "developer",
+      "software engineer",
+      "software developer",
+      "engineer",
+      "engineering",
+      "devops",
+      "cloud engineer",
+      "data scientist",
+      "data engineer",
+      "product manager",
+      "product designer",
+      "ux designer",
+      "ui designer",
+      "architect",
+      "cybersecurity",
+      "security engineer",
+      "marketing",
+      "human resources",
+      "recruiter",
+      "accountant",
+      "payroll",
+      "finance",
+      "financial",
+      "lawyer",
+      "legal counsel",
+      "physician",
+      "nurse",
+      "surveyor",
+      "designer",
+      "research scientist",
+      "project manager",
+      "program manager",
+      "pricing manager",
+      "strategy manager"
+    ],
+    "seniority_exclude_terms": [
+      "senior",
+      "sr.",
+      "principal",
+      "director",
+      "vice president",
+      "vp",
+      "chief",
+      "regional sales manager",
+      "enterprise account executive",
+      "strategic account executive"
+    ],
+    "allowed_supervision_title_terms": [
+      "call center supervisor",
+      "call-centre supervisor",
+      "customer support supervisor",
+      "customer service supervisor",
+      "team lead customer support",
+      "team lead customer service",
+      "superviseur de plateau"
+    ]
   },
   "source_documents": {
     "original_cv_in_library": "CV  Rodrigue Augustin Mbock-1.pdf",
