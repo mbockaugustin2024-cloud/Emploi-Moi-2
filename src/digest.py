@@ -1,6 +1,6 @@
 import html
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import requests
 from supabase import create_client
@@ -59,6 +59,7 @@ def job_block(job, index):
 
 
 def main():
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=90)).isoformat()
     response = (
         supabase
         .table("jobs")
@@ -69,6 +70,7 @@ def main():
         .eq("is_active", True)
         .eq("email_sent", False)
         .gte("score", MIN_SCORE)
+        .gte("publication_date", cutoff)
         .order("score", desc=True)
         .order("publication_date", desc=True)
         .execute()
