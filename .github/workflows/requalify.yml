@@ -2,8 +2,6 @@ name: Requalify Existing Jobs
 
 on:
   workflow_dispatch:
-  push:
-    branches: ["main"]
 
 jobs:
   requalify:
