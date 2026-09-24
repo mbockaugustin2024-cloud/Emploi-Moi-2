@@ -202,7 +202,7 @@ def fetch_all_sources():
             jobs = fn()
             all_jobs.extend(jobs)
             print(f"{name}: {len(jobs)} offres reçues.")
-        except requests.RequestException as error:
+        except Exception as error:
             source_errors.append(f"{name}: {error}")
             print(f"Erreur source {name}: {error}")
     return all_jobs, source_errors
