@@ -1,6 +1,7 @@
 import json
 import os
 import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 
 import requests
@@ -264,6 +265,8 @@ def main():
     updated = 0
     skipped = 0
 
+    candidates = []
+
     for job in jobs:
         url = normalize_url(job.get("url"))
         if not url or url in seen:
@@ -275,7 +278,34 @@ def main():
             skipped += 1
             continue
 
-        if not active_status(job):
+        candidates.append((job, score, reasons))
+
+    active_results = {}
+    with ThreadPoolExecutor(max_workers=12) as executor:
+        futures = {
+            executor.submit(active_status, job): (job, score, reasons)
+            for job, score, reasons in candidates
+        }
+        for future in as_completed(futures):
+            job, score, reasons = futures[future]
+            try:
+                active_results[normalize_url(job.get("url"))] = (
+                    future.result(),
+                    job,
+                    score,
+                    reasons,
+                )
+            except Exception as exc:
+                print(f"Erreur vérification active {job.get('title')}: {exc}")
+                active_results[normalize_url(job.get("url"))] = (
+                    True,
+                    job,
+                    score,
+                    reasons,
+                )
+
+    for url, (active, job, score, reasons) in active_results.items():
+        if not active:
             skipped += 1
             continue
 
