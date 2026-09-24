@@ -88,10 +88,14 @@ NON_TARGET_LANGUAGES = (
 )
 MULTI_LANGUAGE_TITLE_RE = re.compile(
     r"\b(?:" + "|".join(NON_TARGET_LANGUAGES) + r")\b"
-    r".{0,25}\b(?:speaker|speaking|language)\b"
-    r"|\b(?:speaker|speaking|language)\b.{0,25}\b(?:" + "|".join(NON_TARGET_LANGUAGES) + r")\b"
-    r"|\b(?:french|english)\s*/\s*(?:" + "|".join(NON_TARGET_LANGUAGES) + r")\b"
-    r"|\b(?:" + "|".join(NON_TARGET_LANGUAGES) + r")\s*/\s*(?:french|english)\b",
+    r".{0,30}\b(?:speaker|speaking|language)\b"
+    r"|\b(?:speaker|speaking|language)\b.{0,30}\b(?:" + "|".join(NON_TARGET_LANGUAGES) + r")\b"
+    r"|\b(?:french|français|francais|english|anglais)\s*/\s*(?:" + "|".join(NON_TARGET_LANGUAGES) + r")\b"
+    r"|\b(?:" + "|".join(NON_TARGET_LANGUAGES) + r")\s*/\s*(?:french|français|francais|english|anglais)\b"
+    r"|\b(?:french|français|francais)\s*/\s*(?:english|anglais)\b"
+    r"|\b(?:english|anglais)\s*/\s*(?:french|français|francais)\b"
+    r"|\b(?:french|français|francais)\s*,\s*(?:english|anglais)\b"
+    r"|\b(?:english|anglais)\s*,\s*(?:french|français|francais)\b",
     re.I,
 )
 RELOCATION_TERMS = (
