@@ -23,6 +23,7 @@ ROLE_FAMILIES = PROFILE["scoring"]["role_families"]
 TITLE_HARD_EXCLUDE_TERMS = tuple(PROFILE["scoring"]["title_hard_exclude_terms"])
 SENIORITY_EXCLUDE_TERMS = tuple(PROFILE["scoring"]["seniority_exclude_terms"])
 ALLOWED_SUPERVISION_TITLE_TERMS = tuple(PROFILE["scoring"]["allowed_supervision_title_terms"])
+HARD_LANGUAGE_PATTERNS = tuple(PROFILE["scoring"]["hard_language_patterns"])
 EXPERIENCE_TERMS = PROFILE["scoring"]["experience_terms"]
 FRENCH_BONUS = PROFILE["scoring"]["french_bonus"]
 REMOTE_BONUS = PROFILE["scoring"]["remote_bonus"]
@@ -169,6 +170,9 @@ def calculate_score(job):
         and not any(term.lower() in title_lower for term in ALLOWED_SUPERVISION_TITLE_TERMS)
     ):
         return 0, ["niveau de poste trop senior/management pour le profil"]
+
+    if any(pattern.lower() in title_lower for pattern in HARD_LANGUAGE_PATTERNS):
+        return 0, ["langue supplémentaire exigée au poste"]
 
     families = title_matches_family(title)
     if not families:
