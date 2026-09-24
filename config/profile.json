@@ -19,11 +19,8 @@
       }
     },
     "contact": {
-      "email": "mbockaugustin2024@gmail.com",
-      "phones": [
-        "+216 22 439 648",
-        "+216 22 645 827"
-      ]
+      "email_env": "BREVO_EMAIL",
+      "include_phone": false
     },
     "cv_privacy": {
       "default_include_photo": false,
