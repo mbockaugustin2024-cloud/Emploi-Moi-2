@@ -627,7 +627,6 @@ def main():
         .eq("is_active", True)
         .gte("score", 40)
         .gte("publication_date", cutoff)
-        .limit(40)
         .execute()
         .data
         or []
