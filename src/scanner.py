@@ -26,43 +26,7 @@ MIN_SCORE = PROFILE["job_preferences"]["minimum_match_score"]
 
 PROFILE_ROLE_TERMS = PROFILE["scoring"]["role_terms"]
 
-# Conservé ici pour compatibilité avec la logique existante ; les valeurs
-# principales du profil sont désormais externalisées dans profile.json.
-LEGACY_PROFILE_ROLE_TERMS = {
-    "customer support": 22,
-    "customer service": 22,
-    "call center": 22,
-    "call-centre": 22,
-    "teleprospection": 20,
-    "teleprospector": 20,
-    "inside sales": 12,
-    "sales": 10,
-    "manutention": 16,
-    "warehouse": 16,
-    "logistics": 16,
-    "agriculture": 14,
-    "restaurant": 14,
-    "hospitality": 14,
-    "hotel": 14,
-    "cleaning": 12,
-    "remote": 8,
-}
-
 PROFILE_EXPERIENCE_TERMS = PROFILE["scoring"]["experience_terms"]
-
-LEGACY_PROFILE_EXPERIENCE_TERMS = {
-    "b2b": 6,
-    "energy": 6,
-    "crm": 6,
-    "outbound": 5,
-    "inbound": 5,
-    "customer": 5,
-    "support": 5,
-    "follow-up": 4,
-    "follow up": 4,
-    "relaunch": 4,
-    "sales": 4,
-}
 
 FRENCH_BONUS = PROFILE["scoring"]["french_bonus"]
 REMOTE_BONUS = PROFILE["scoring"]["remote_bonus"]
