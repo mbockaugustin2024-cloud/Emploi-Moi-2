@@ -40,6 +40,16 @@ OTHER_LANGUAGE_HARD_REQUIRED = re.compile(
     r"|\b(?:german|italian|spanish)\s+(?:is\s+)?(?:required|mandatory|essential)\b",
     re.I,
 )
+WORK_AUTHORIZATION_HARD = re.compile(
+    r"no\s+visa\s+sponsorship"
+    r"|visa\s+sponsorship\s+(?:is\s+)?(?:not\s+available|unavailable)"
+    r"|must\s+be\s+(?:legally\s+)?authorized\s+to\s+work"
+    r"|legally\s+authorized\s+to\s+work"
+    r"|work\s+authorization\s+(?:is\s+)?required"
+    r"|right\s+to\s+work\s+(?:is\s+)?required"
+    r"|must\s+have\s+(?:the\s+)?right\s+to\s+work",
+    re.I,
+)
 CLOSED_TERMS = (
     "position has been filled",
     "position filled",
@@ -174,9 +184,15 @@ def calculate_score(job):
         score += REMOTE_BONUS
         reasons.append("remote")
 
-    if any(term in searchable for term in RELOCATION_TERMS):
+    if job.get("visa_sponsorship_signal"):
+        score += RELOCATION_BONUS
+        reasons.append("visa sponsorship signalisée par la source")
+    elif any(term in searchable for term in RELOCATION_TERMS):
         score += RELOCATION_BONUS
         reasons.append("relocation/visa mentionnée")
+
+    if WORK_AUTHORIZATION_HARD.search(searchable):
+        return 0, ["autorisation de travail préalable / absence de sponsorship"]
 
     if OTHER_LANGUAGE_HARD_REQUIRED.search(searchable):
         return 0, ["langue supplémentaire requise à un niveau avancé"]
