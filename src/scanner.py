@@ -368,7 +368,35 @@ def main():
             continue
 
         if url in existing_urls:
-            skipped_duplicate += 1
+            try:
+                refresh_record = build_record(job, score)
+                (
+                    supabase
+                    .table("jobs")
+                    .update({
+                        "title": refresh_record["title"],
+                        "company": refresh_record["company"],
+                        "location": refresh_record["location"],
+                        "description": refresh_record["description"],
+                        "publication_date": refresh_record["publication_date"],
+                        "job_type": refresh_record["job_type"],
+                        "salary": refresh_record["salary"],
+                        "source_job_id": refresh_record["source_job_id"],
+                        "score": refresh_record["score"],
+                        "score_reason": refresh_record["score_reason"],
+                        "is_active": True,
+                        "detected_language": refresh_record["detected_language"],
+                        "last_seen_at": refresh_record["last_seen_at"]
+                    })
+                    .eq("url", url)
+                    .execute()
+                )
+                skipped_duplicate += 1
+            except Exception as error:
+                print(
+                    f"Erreur actualisation pour "
+                    f"{job.get('title')}: {error}"
+                )
             continue
 
         scored_jobs.append(
