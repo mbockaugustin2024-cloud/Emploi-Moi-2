@@ -1,0 +1,207 @@
+{
+  "schema_version": "1.0",
+  "candidate": {
+    "name": "Rodrigue Augustin Mbock",
+    "gender": "male",
+    "nationality": "Cameroonian",
+    "current_location": "Tunis, Tunisia",
+    "primary_language": "French",
+    "languages": {
+      "French": {
+        "level": "native_fluent"
+      },
+      "English": {
+        "level": "beginner",
+        "status": "currently_learning"
+      },
+      "Spanish": {
+        "level": "beginner"
+      }
+    }
+  },
+  "professional_profile": "French-speaking customer support and call center professional with experience in inbound and outbound calls, B2B sales, teleprospection, customer follow-up, CRM/database work, appointment confirmation, complaint handling and team supervision.",
+  "current_experience": {
+    "title": "B2B Energy Sales / Customer Service Representative",
+    "location": "Tunis, Tunisia",
+    "start": "2026-05",
+    "responsibilities": [
+      "Handle inbound and outbound B2B calls.",
+      "Receive and review gas and electricity bills.",
+      "Request, compare and present energy supplier offers.",
+      "Handle customer questions and commercial objections.",
+      "Perform customer/prospect follow-up and call-backs.",
+      "Update and check CRM information."
+    ]
+  },
+  "experience": [
+    {
+      "title": "Call Center Floor Supervisor & Appointment Confirmation Agent",
+      "company": "Vissismart",
+      "location": "Tunis, Tunisia",
+      "start": "2024-05",
+      "end": "2026-01",
+      "skills": ["supervision", "performance monitoring", "training support", "appointment confirmation", "customer questions", "CRM/management system", "quality control"]
+    },
+    {
+      "title": "Call Center Agent / Customer Advisor",
+      "company": "Agora Center",
+      "location": "Tunis, Tunisia",
+      "start": "2024-02",
+      "end": "2024-04",
+      "skills": ["inbound calls", "outbound calls", "telesales", "customer support", "problem solving", "follow-up"]
+    },
+    {
+      "title": "Freelance Closer",
+      "company": "SARL",
+      "location": "Douala, Cameroon",
+      "start": "2023-08",
+      "end": "2023-12",
+      "skills": ["prospecting", "lead qualification", "objection handling", "negotiation", "contract closing", "after-sales follow-up"]
+    },
+    {
+      "title": "Call Center Agent / Teleoperator",
+      "company": "Callisto Outsourcing SARL",
+      "location": "Douala, Cameroon",
+      "start": "2023-03",
+      "end": "2023-07",
+      "skills": ["inbound calls", "outbound calls", "prospecting", "sales", "customer loyalty", "customer follow-up", "database updates"]
+    },
+    {
+      "title": "Call Center Agent / Teleoperator",
+      "company": "TBCO",
+      "location": "Douala, Cameroon",
+      "start": "2022-06",
+      "end": "2023-02",
+      "skills": ["inbound calls", "outbound calls", "telesales", "customer orientation", "product presentation", "competitor analysis", "daily reporting"]
+    },
+    {
+      "title": "Waiter",
+      "company": "Maison H Restaurant",
+      "location": "Douala, Cameroon",
+      "start": "2021-08",
+      "end": "2022-05",
+      "skills": ["customer service", "table service", "order taking", "cleanliness", "customer satisfaction"]
+    },
+    {
+      "title": "Waiter & Receptionist",
+      "company": "MYA Lounge Restaurant",
+      "location": "Yaounde, Cameroon",
+      "start": "2020-09",
+      "end": "2021-06",
+      "skills": ["customer reception", "service coordination", "complaint handling", "teamwork", "customer comfort"]
+    }
+  ],
+  "education": [
+    {
+      "qualification": "Baccalaureate A4 (Arts & Languages), Spanish option",
+      "country": "Cameroon"
+    }
+  ],
+  "skills": [
+    "Customer service",
+    "French customer support",
+    "Inbound and outbound calls",
+    "Teleprospection",
+    "Telesales",
+    "B2B sales",
+    "Prospecting",
+    "Lead qualification",
+    "Follow-up and call-backs",
+    "CRM and database management",
+    "Appointment setting and confirmation",
+    "Objection handling",
+    "Sales negotiation",
+    "Complaint handling",
+    "Customer loyalty",
+    "Team supervision",
+    "Performance monitoring",
+    "Quality control",
+    "Active listening",
+    "Empathy",
+    "Oral communication",
+    "Teamwork",
+    "Stress management"
+  ],
+  "target_roles": [
+    "French Customer Support",
+    "French Customer Service",
+    "Call Center Agent",
+    "Customer Advisor",
+    "Teleprospector",
+    "Telesales",
+    "B2B Customer Service",
+    "Inside Sales",
+    "Restaurant / Hospitality",
+    "Warehouse / Logistics",
+    "Manutention",
+    "Agriculture",
+    "Cleaning"
+  ],
+  "job_preferences": {
+    "minimum_match_score": 40,
+    "maximum_job_age_days": 90,
+    "prioritize_recent_jobs": true,
+    "prefer_active_jobs": true,
+    "relocation_priority": true,
+    "visa_sponsorship_must_be_verified": true,
+    "international_applicants_preferred": true,
+    "remote_jobs_allowed": true,
+    "english_requirement": "Do not recommend jobs where advanced, fluent, professional, native, C1 or C2 English is required. Beginner English is acceptable only when the employer does not require a higher level."
+  },
+  "scoring": {
+    "role_terms": {
+      "customer support": 22,
+      "customer service": 22,
+      "call center": 22,
+      "call-centre": 22,
+      "teleprospection": 20,
+      "teleprospector": 20,
+      "inside sales": 12,
+      "sales": 10,
+      "manutention": 16,
+      "warehouse": 16,
+      "logistics": 16,
+      "agriculture": 14,
+      "restaurant": 14,
+      "hospitality": 14,
+      "hotel": 14,
+      "cleaning": 12,
+      "remote": 8
+    },
+    "experience_terms": {
+      "b2b": 6,
+      "energy": 6,
+      "crm": 6,
+      "outbound": 5,
+      "inbound": 5,
+      "customer": 5,
+      "support": 5,
+      "follow-up": 4,
+      "follow up": 4,
+      "relaunch": 4,
+      "sales": 4,
+      "prospecting": 5,
+      "appointment": 4,
+      "supervisor": 4
+    },
+    "french_bonus": 15,
+    "remote_bonus": 7,
+    "relocation_bonus": 8,
+    "english_optional_bonus": 3,
+    "freshness_points": {
+      "0_1_days": 20,
+      "2_3_days": 17,
+      "4_7_days": 14,
+      "8_14_days": 11,
+      "15_30_days": 8,
+      "31_60_days": 5,
+      "61_90_days": 2
+    }
+  },
+  "source_documents": {
+    "original_cv_in_library": "CV  Rodrigue Augustin Mbock-1.pdf",
+    "french_cv_in_library": "Rodrigue_Mbock_CV_French_Customer_Support_1page.docx",
+    "english_cv_in_library": "Rodrigue_Mbock_CV_English_Customer_Support_1page.docx",
+    "photo_present_in_original_cv": true
+  }
+}
