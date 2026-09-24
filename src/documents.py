@@ -12,6 +12,7 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 from supabase import create_client
+from ai_writer import generate_ai_content
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 with open(
@@ -97,7 +98,7 @@ def relevant_experience(job):
     ][:5]
 
 
-def make_cv(job):
+def make_cv(job, ai_data=None):
     language = detect_language(job)
     name = PROFILE["candidate"]["name"]
     contact = PROFILE["candidate"]["contact"]
@@ -122,6 +123,12 @@ def make_cv(job):
             "Français - langue maternelle / courant | "
             "Anglais - débutant | Espagnol - débutant"
         )
+        if not ai_data:
+            ai_data = {}
+        summary = ai_data.get("summary_fr") or summary
+        ai_skills = ai_data.get("selected_skills") or []
+        if ai_skills:
+            skills = ai_skills[:8]
     else:
         summary = PROFILE["professional_profile"]
         sections = {
@@ -135,6 +142,12 @@ def make_cv(job):
             "French - Native / Fluent | "
             "English - Beginner | Spanish - Beginner"
         )
+        if not ai_data:
+            ai_data = {}
+        summary = ai_data.get("summary_en") or summary
+        ai_skills = ai_data.get("selected_skills") or []
+        if ai_skills:
+            skills = ai_skills[:8]
 
     doc = Document()
     section = doc.sections[0]
@@ -219,13 +232,18 @@ def make_cv(job):
     return doc
 
 
-def make_letter(job):
+def make_letter(job, ai_data=None):
     language = detect_language(job)
     company = plain(job.get("company")) or "the hiring team"
     title = plain(job.get("title")) or "the position"
     skills = matched_skills(job)
 
     if language == "fr":
+        if ai_data and ai_data.get("letter_fr"):
+            return [
+                f"Objet : Candidature - {title}",
+                ai_data["letter_fr"],
+            ]
         body = [
             f"Objet : Candidature - {title}",
             (
@@ -263,6 +281,11 @@ def make_letter(job):
             ),
         ]
     else:
+        if ai_data and ai_data.get("letter_en"):
+            return [
+                f"Subject: Application - {title}",
+                ai_data["letter_en"],
+            ]
         body = [
             f"Subject: Application - {title}",
             (
@@ -374,8 +397,8 @@ def build_pdf_from_story(story):
     return buffer.getvalue()
 
 
-def build_letter_pdf(job):
-    body = make_letter(job)
+def build_letter_pdf(job, ai_data=None):
+    body = make_letter(job, ai_data)
     styles = getSampleStyleSheet()
     styles.add(
         ParagraphStyle(
@@ -489,7 +512,7 @@ def build_cv_pdf(job):
     return build_pdf_from_story(story)
 
 
-def generate_for_job(job):
+def generate_for_job(job, ai_data=None):
     ensure_bucket()
 
     job_key = re.sub(
@@ -506,7 +529,7 @@ def generate_for_job(job):
     cv_docx_path = f"{folder}/CV_Rodrigue_Mbock.docx"
     letter_path = f"{folder}/Lettre_Rodrigue_Mbock.pdf"
 
-    cv_doc = make_cv(job)
+    cv_doc = make_cv(job, ai_data)
 
     cv_url = upload_bytes(
         cv_path,
@@ -522,7 +545,7 @@ def generate_for_job(job):
 
     letter_url = upload_bytes(
         letter_path,
-        build_letter_pdf(job),
+        build_letter_pdf(job, ai_data),
         "application/pdf",
     )
 
@@ -554,7 +577,12 @@ def main():
 
     for row in rows:
         try:
-            cv_url, letter_url = generate_for_job(row)
+            ai_data = generate_ai_content(row, PROFILE)
+            if ai_data:
+                print(f"IA active pour: {row.get('title')}")
+            else:
+                print(f"Fallback automatique pour: {row.get('title')}")
+            cv_url, letter_url = generate_for_job(row, ai_data)
             (
                 supabase
                 .table("jobs")
@@ -562,11 +590,11 @@ def main():
                     "cv_url": cv_url,
                     "cover_letter_url": letter_url,
                     "cv_text": (
-                        "CV généré à partir du profil maître et adapté "
+                        "CV généré à partir du profil maître ; adaptation IA si la clé OpenRouter est configurée."
                         "au contenu de l'offre."
                     ),
                     "cover_letter_text": (
-                        "Lettre générée à partir du profil maître et "
+                        "Lettre générée à partir du profil maître ; adaptation IA si la clé OpenRouter est configurée."
                         "adaptée au contenu de l'offre."
                     ),
                 })
