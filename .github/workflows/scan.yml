@@ -2,6 +2,8 @@ name: Job Scanner
 
 on:
   workflow_dispatch:
+  push:
+    branches: ["main"]
   schedule:
     - cron: "30 * * * *"
 
