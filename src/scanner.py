@@ -5,83 +5,41 @@ from datetime import datetime, timezone
 
 import requests
 from supabase import create_client
+from sources import fetch_all_sources, normalize_url
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+with open(os.path.join(BASE_DIR, "config", "profile.json"), "r", encoding="utf-8") as f:
+    PROFILE = json.load(f)
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_SERVICE_ROLE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PROFILE_PATH = os.path.join(BASE_DIR, "config", "profile.json")
-
-with open(PROFILE_PATH, "r", encoding="utf-8") as profile_file:
-    PROFILE = json.load(profile_file)
-
-supabase = create_client(
-    SUPABASE_URL,
-    SUPABASE_SERVICE_ROLE_KEY
-)
-
-REMOTIVE_URL = "https://remotive.com/api/remote-jobs"
 MAX_AGE_DAYS = PROFILE["job_preferences"]["maximum_job_age_days"]
 MIN_SCORE = PROFILE["job_preferences"]["minimum_match_score"]
-
-PROFILE_ROLE_TERMS = PROFILE["scoring"]["role_terms"]
-
-PROFILE_EXPERIENCE_TERMS = PROFILE["scoring"]["experience_terms"]
-
+ROLE_TERMS = PROFILE["scoring"]["role_terms"]
+EXPERIENCE_TERMS = PROFILE["scoring"]["experience_terms"]
 FRENCH_BONUS = PROFILE["scoring"]["french_bonus"]
 REMOTE_BONUS = PROFILE["scoring"]["remote_bonus"]
 RELOCATION_BONUS = PROFILE["scoring"]["relocation_bonus"]
 ENGLISH_OPTIONAL_BONUS = PROFILE["scoring"]["english_optional_bonus"]
 
-FRENCH_TERMS = (
-    "french",
-    "français",
-    "francais",
-    "francophone",
-    "french-speaking",
-    "french speaking",
-)
-
-REMOTE_TERMS = (
-    "remote",
-    "work from home",
-    "distributed",
-    "fully remote",
-    "100% remote",
-)
-
-RELOCATION_TERMS = (
-    "relocation",
-    "visa sponsorship",
-    "work permit",
-    "international applicants",
-    "sponsorship available",
-)
-
 ENGLISH_HARD_REQUIRED = re.compile(
-    r"""
-    \b(?:native|fluent|advanced|professional)\s+english\b
-    |
-    \benglish\s+(?:is\s+)?(?:required|mandatory|essential)\b
-    |
-    \benglish\s+proficiency\b
-    |
-    \bc1\s+english\b
-    |
-    \bc2\s+english\b
-    """,
-    re.IGNORECASE | re.VERBOSE,
+    r"\b(?:native|fluent|advanced|professional)\s+english\b"
+    r"|\benglish\s+(?:is\s+)?(?:required|mandatory|essential)\b"
+    r"|\benglish\s+proficiency\b|\bc1\s+english\b|\bc2\s+english\b",
+    re.I,
 )
-
 ENGLISH_OPTIONAL = re.compile(
-    r"""
-    english\s+(?:is\s+)?(?:a\s+)?(?:plus|bonus|preferred|optional|nice\s+to\s+have|an\s+advantage)
-    |
-    english\s+(?:is\s+)?(?:not\s+required)
-    """,
-    re.IGNORECASE | re.VERBOSE,
+    r"english\s+(?:is\s+)?(?:a\s+)?(?:plus|bonus|preferred|optional|nice\s+to\s+have|an\s+advantage)"
+    r"|english\s+(?:is\s+)?(?:not\s+required)",
+    re.I,
 )
-
+OTHER_LANGUAGE_HARD_REQUIRED = re.compile(
+    r"\b(?:native|fluent|advanced|professional)\s+(?:german|italian|spanish)\b"
+    r"|\b(?:german|italian|spanish)\s+(?:is\s+)?(?:required|mandatory|essential)\b",
+    re.I,
+)
 CLOSED_TERMS = (
     "position has been filled",
     "position filled",
@@ -91,335 +49,247 @@ CLOSED_TERMS = (
     "role is closed",
     "this job has expired",
 )
+FRENCH_TERMS = (
+    "french",
+    "français",
+    "francais",
+    "francophone",
+    "french-speaking",
+    "french speaking",
+)
+REMOTE_TERMS = (
+    "remote",
+    "work from home",
+    "distributed",
+    "fully remote",
+    "100% remote",
+)
+RELOCATION_TERMS = (
+    "relocation",
+    "visa sponsorship",
+    "work permit",
+    "international applicants",
+    "sponsorship available",
+)
 
 
 def parse_date(value):
     if not value:
         return None
-
     value = str(value).strip()
-
     try:
         if value.endswith("Z"):
-            return datetime.fromisoformat(
-                value[:-1] + "+00:00"
-            )
-
+            value = value[:-1] + "+00:00"
         parsed = datetime.fromisoformat(value)
-
-        if parsed.tzinfo is None:
-            parsed = parsed.replace(tzinfo=timezone.utc)
-
-        return parsed
-
+        return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
     except ValueError:
         return None
 
 
-def age_in_days(publication_date):
-    parsed = parse_date(publication_date)
-
+def age_in_days(value):
+    parsed = parse_date(value)
     if not parsed:
         return None
-
-    age = (
-        datetime.now(timezone.utc) - parsed
-    ).total_seconds() / 86400
-
-    return age
+    return (datetime.now(timezone.utc) - parsed).total_seconds() / 86400
 
 
-def is_recent(publication_date):
-    age = age_in_days(publication_date)
-
-    if age is None:
-        return False
-
-    return 0 <= age <= MAX_AGE_DAYS
+def is_recent(value):
+    age = age_in_days(value)
+    return age is not None and 0 <= age <= MAX_AGE_DAYS
 
 
-def freshness_points(publication_date):
-    age = age_in_days(publication_date)
-
+def freshness_points(value):
+    age = age_in_days(value)
     if age is None:
         return 0
-
-    if age <= 1:
-        return 20
-
-    if age <= 3:
-        return 17
-
-    if age <= 7:
-        return 14
-
-    if age <= 14:
-        return 11
-
-    if age <= 30:
-        return 8
-
-    if age <= 60:
-        return 5
-
-    return 2
+    for limit, points in (
+        (1, 20), (3, 17), (7, 14), (14, 11),
+        (30, 8), (60, 5), (90, 2),
+    ):
+        if age <= limit:
+            return points
+    return 0
 
 
 def active_status(job):
     description = str(job.get("description") or "").lower()
-    url = str(job.get("url") or "").strip()
-
-    for term in CLOSED_TERMS:
-        if term in description:
-            return False
-
+    url = normalize_url(job.get("url") or "")
     if not url:
         return False
-
+    if any(term in description for term in CLOSED_TERMS):
+        return False
     try:
         response = requests.get(
             url,
-            timeout=15,
+            timeout=12,
             allow_redirects=True,
-            headers={
-                "User-Agent": "Mozilla/5.0 JobScanner/1.0"
-            },
+            headers={"User-Agent": "Mozilla/5.0 Emploi-Moi/1.0"},
         )
-
-        # 404/410 = page definitely unavailable.
-        if response.status_code in (404, 410):
-            return False
-
-        # 403/429 can be protection/rate limiting.
-        # We don't mark those jobs as closed.
-        return True
-
+        return response.status_code not in (404, 410)
     except requests.RequestException:
-        # Network failure alone must not delete a potentially valid offer.
         return True
 
 
 def calculate_score(job):
-    title = str(job.get("title") or "")
-    description = str(job.get("description") or "")
-    location = str(job.get("candidate_required_location") or "")
-    language = str(job.get("language") or "")
+    if not is_recent(job.get("publication_date")):
+        return 0, ["date hors limite"]
 
-    searchable_text = (
-        f"{title} {description} {location} {language}"
+    searchable = " ".join(
+        str(job.get(key) or "")
+        for key in ("title", "description", "location", "detected_language")
     ).lower()
 
-    if not is_recent(job.get("publication_date")):
-        return 0
+    score = freshness_points(job.get("publication_date"))
+    reasons = []
 
-    if not active_status(job):
-        return 0
+    role_hits = [
+        (term, points)
+        for term, points in ROLE_TERMS.items()
+        if term in searchable
+    ]
+    experience_hits = [
+        (term, points)
+        for term, points in EXPERIENCE_TERMS.items()
+        if term in searchable
+    ]
 
-    score = 0
+    score += sum(points for _, points in role_hits)
+    score += sum(points for _, points in experience_hits)
 
-    for term, points in PROFILE_ROLE_TERMS.items():
-        if term in searchable_text:
-            score += points
-
-    for term, points in PROFILE_EXPERIENCE_TERMS.items():
-        if term in searchable_text:
-            score += points
-
-    if any(term in searchable_text for term in FRENCH_TERMS):
-        score += FRENCH_BONUS
-
-    if any(term in searchable_text for term in REMOTE_TERMS):
-        score += REMOTE_BONUS
-
-    if any(term in searchable_text for term in RELOCATION_TERMS):
-        score += RELOCATION_BONUS
-
-    english_required = ENGLISH_HARD_REQUIRED.search(searchable_text)
-    english_optional = ENGLISH_OPTIONAL.search(searchable_text)
-
-    if english_required and not english_optional:
-        return 0
-
-    if english_optional:
-        score += ENGLISH_OPTIONAL_BONUS
-
-    score += freshness_points(job.get("publication_date"))
-
-    return max(0, min(score, 100))
-
-
-def get_existing_urls():
-    existing = set()
-
-    try:
-        response = (
-            supabase
-            .table("jobs")
-            .select("url")
-            .execute()
+    if role_hits:
+        reasons.append(
+            "rôles: " + ", ".join(term for term, _ in role_hits[:4])
+        )
+    if experience_hits:
+        reasons.append(
+            "expérience: "
+            + ", ".join(term for term, _ in experience_hits[:5])
         )
 
-        for row in response.data or []:
-            url = row.get("url")
+    if any(term in searchable for term in FRENCH_TERMS):
+        score += FRENCH_BONUS
+        reasons.append("français")
 
-            if url:
-                existing.add(url)
+    if any(term in searchable for term in REMOTE_TERMS) or job.get("remote"):
+        score += REMOTE_BONUS
+        reasons.append("remote")
 
-    except Exception as error:
-        print(f"Impossible de lire les offres existantes : {error}")
+    if any(term in searchable for term in RELOCATION_TERMS):
+        score += RELOCATION_BONUS
+        reasons.append("relocation/visa mentionnée")
 
-    return existing
+    if OTHER_LANGUAGE_HARD_REQUIRED.search(searchable):
+        return 0, ["langue supplémentaire requise à un niveau avancé"]
+
+    if (
+        ENGLISH_HARD_REQUIRED.search(searchable)
+        and not ENGLISH_OPTIONAL.search(searchable)
+    ):
+        return 0, ["anglais avancé/fluent requis"]
+
+    if ENGLISH_OPTIONAL.search(searchable):
+        score += ENGLISH_OPTIONAL_BONUS
+        reasons.append("anglais = plus/optionnel")
+
+    return max(0, min(round(score), 100)), reasons
 
 
-def build_record(job, score):
-    publication_date = job.get("publication_date")
+def existing_by_url():
+    rows = (
+        supabase
+        .table("jobs")
+        .select("url,score,email_sent,cv_url,cover_letter_url")
+        .execute()
+        .data
+        or []
+    )
+    return {
+        normalize_url(row.get("url")): row
+        for row in rows
+        if row.get("url")
+    }
 
+
+def build_record(job, score, reasons):
     return {
         "title": job.get("title"),
-        "company": job.get("company_name"),
-        "location": job.get("candidate_required_location"),
-        "url": job.get("url"),
-        "source": "Remotive",
-        "category": job.get("category") or "Remote",
-        "remote": True,
+        "company": job.get("company"),
+        "location": job.get("location"),
+        "url": normalize_url(job.get("url")),
+        "source": job.get("source"),
+        "category": job.get("category"),
+        "remote": bool(job.get("remote")),
         "description": job.get("description"),
-        "publication_date": publication_date,
+        "publication_date": job.get("publication_date"),
         "job_type": job.get("job_type"),
         "salary": job.get("salary"),
-        "source_job_id": str(job.get("id") or ""),
+        "source_job_id": job.get("source_job_id"),
         "score": score,
         "score_reason": (
-            "Profil correspondant, offre récente et offre "
-            "considérée active au moment du scan."
+            "; ".join(reasons)
+            if reasons
+            else "Correspondance de profil et fraîcheur vérifiées."
         ),
         "is_active": True,
-        "detected_language": job.get("language"),
-        "email_sent": False,
+        "detected_language": job.get("detected_language"),
         "last_seen_at": datetime.now(timezone.utc).isoformat(),
         "application_status": "pending",
     }
 
 
 def main():
-    print("Démarrage du scanner...")
+    print("Démarrage du scanner multi-source...")
+    jobs, errors = fetch_all_sources()
+    print(f"Total brut: {len(jobs)}")
 
-    response = requests.get(
-        REMOTIVE_URL,
-        timeout=30,
-        headers={
-            "User-Agent": "Mozilla/5.0 JobScanner/1.0"
-        },
-    )
-
-    response.raise_for_status()
-
-    jobs = response.json().get("jobs", [])
-
-    print(f"{len(jobs)} offres reçues depuis Remotive.")
-
-    existing_urls = get_existing_urls()
-
+    existing = existing_by_url()
+    seen = set()
     inserted = 0
-    skipped_old = 0
-    skipped_closed = 0
-    skipped_score = 0
-    skipped_duplicate = 0
-
-    scored_jobs = []
+    updated = 0
+    skipped = 0
 
     for job in jobs:
-        publication_date = job.get("publication_date")
+        url = normalize_url(job.get("url"))
+        if not url or url in seen:
+            continue
+        seen.add(url)
 
-        if not is_recent(publication_date):
-            skipped_old += 1
+        score, reasons = calculate_score(job)
+        if score < MIN_SCORE:
+            skipped += 1
             continue
 
         if not active_status(job):
-            skipped_closed += 1
+            skipped += 1
             continue
 
-        score = calculate_score(job)
-
-        if score < MIN_SCORE:
-            skipped_score += 1
-            continue
-
-        url = job.get("url")
-
-        if not url:
-            continue
-
-        if url in existing_urls:
-            try:
-                refresh_record = build_record(job, score)
+        record = build_record(job, score, reasons)
+        try:
+            if url in existing:
                 (
                     supabase
                     .table("jobs")
-                    .update({
-                        "title": refresh_record["title"],
-                        "company": refresh_record["company"],
-                        "location": refresh_record["location"],
-                        "description": refresh_record["description"],
-                        "publication_date": refresh_record["publication_date"],
-                        "job_type": refresh_record["job_type"],
-                        "salary": refresh_record["salary"],
-                        "source_job_id": refresh_record["source_job_id"],
-                        "score": refresh_record["score"],
-                        "score_reason": refresh_record["score_reason"],
-                        "is_active": True,
-                        "detected_language": refresh_record["detected_language"],
-                        "last_seen_at": refresh_record["last_seen_at"]
-                    })
+                    .update(record)
                     .eq("url", url)
                     .execute()
                 )
-                skipped_duplicate += 1
-            except Exception as error:
-                print(
-                    f"Erreur actualisation pour "
-                    f"{job.get('title')}: {error}"
-                )
-            continue
-
-        scored_jobs.append(
-            (score, publication_date, job)
-        )
-
-    # Plus récent d'abord, puis score élevé.
-    scored_jobs.sort(
-        key=lambda item: (
-            parse_date(item[1]) or datetime.min.replace(
-                tzinfo=timezone.utc
-            ),
-            item[0],
-        ),
-        reverse=True,
-    )
-
-    for score, publication_date, job in scored_jobs:
-        try:
-            record = build_record(job, score)
-
-            supabase.table("jobs").insert(
-                record
-            ).execute()
-
-            existing_urls.add(job.get("url"))
-            inserted += 1
-
-        except Exception as error:
-            print(
-                f"Erreur insertion pour "
-                f"{job.get('title')}: {error}"
-            )
+                updated += 1
+            else:
+                supabase.table("jobs").insert(record).execute()
+                inserted += 1
+        except Exception as exc:
+            print(f"Erreur DB pour {job.get('title')}: {exc}")
 
     print("----- RÉSULTAT -----")
-    print(f"Offres analysées : {len(jobs)}")
-    print(f"Nouvelles offres ajoutées : {inserted}")
-    print(f"Offres > 90 jours / date invalide : {skipped_old}")
-    print(f"Offres fermées/non disponibles : {skipped_closed}")
-    print(f"Offres sous 40 % : {skipped_score}")
-    print(f"Doublons ignorés : {skipped_duplicate}")
+    print(f"Offres brutes: {len(jobs)}")
+    print(f"Nouvelles: {inserted}")
+    print(f"Actualisées: {updated}")
+    print(f"Écartées: {skipped}")
+
+    if errors:
+        print("Erreurs sources:")
+        for error in errors:
+            print(error)
 
 
 if __name__ == "__main__":
