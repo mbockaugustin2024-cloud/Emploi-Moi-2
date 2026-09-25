@@ -3,6 +3,7 @@ import os
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 
 import requests
 from supabase import create_client
@@ -123,7 +124,11 @@ def parse_date(value):
         parsed = datetime.fromisoformat(value)
         return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
     except ValueError:
-        return None
+        try:
+            parsed = parsedate_to_datetime(value)
+            return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+        except (TypeError, ValueError, IndexError):
+            return None
 
 
 def age_in_days(value):
