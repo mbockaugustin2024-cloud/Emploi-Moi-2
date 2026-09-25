@@ -623,6 +623,7 @@ def main():
         .select("*")
         .eq("is_active", True)
         .gte("score", 40)
+        .ilike("score_reason", "%IA REVIEW: OK%")
         .gte("publication_date", cutoff)
         .execute()
         .data
