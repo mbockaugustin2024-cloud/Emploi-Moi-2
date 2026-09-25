@@ -29,6 +29,8 @@ FRENCH_BONUS = PROFILE["scoring"]["french_bonus"]
 REMOTE_BONUS = PROFILE["scoring"]["remote_bonus"]
 RELOCATION_BONUS = PROFILE["scoring"]["relocation_bonus"]
 ENGLISH_OPTIONAL_BONUS = PROFILE["scoring"]["english_optional_bonus"]
+ENGLISH_HARD_PATTERNS = tuple(PROFILE["scoring"]["english_hard_patterns"])
+REMOTE_LOCATION_EXCLUDE_PATTERNS = tuple(PROFILE["scoring"]["remote_location_exclude_patterns"])
 
 ENGLISH_HARD_REQUIRED = re.compile(
     r"\b(?:native|fluent|advanced|professional)\s+english\b"
@@ -178,12 +180,48 @@ def title_matches_family(title):
     return matches
 
 
+def remote_location_is_restricted(job):
+    if not job.get("remote"):
+        return False
+    location = str(job.get("location") or "").strip().lower()
+    description = str(job.get("description") or "").lower()
+    combined = f"{location} {description}"
+    if not combined.strip():
+        return False
+
+    for pattern in REMOTE_LOCATION_EXCLUDE_PATTERNS:
+        if term_matches(combined, pattern):
+            return True
+
+    country_names = (
+        "canada", "united states", "usa", "uk", "united kingdom",
+        "france", "germany", "italy", "spain", "belgium", "netherlands",
+        "australia", "new zealand", "ireland", "switzerland",
+    )
+    restriction_terms = (
+        "must be based", "must be located", "must reside",
+        "reside in", "based in", "located in", "residence in",
+        "remote only", "only",
+    )
+    if any(term in combined for term in restriction_terms):
+        if any(country in combined for country in country_names):
+            return True
+
+    if location in country_names:
+        return True
+
+    return False
+
+
 def calculate_score(job):
     if not is_recent(job.get("publication_date")):
         return 0, ["date hors limite"]
 
     title = str(job.get("title") or "")
     title_lower = title.lower()
+
+    if remote_location_is_restricted(job):
+        return 0, ["remote restreint à un pays/territoire"]
 
     if any(term_matches(title, term) for term in TITLE_HARD_EXCLUDE_TERMS):
         return 0, ["métier hors profil"]
