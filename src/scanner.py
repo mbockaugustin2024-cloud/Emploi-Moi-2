@@ -20,6 +20,7 @@ supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
 MAX_AGE_DAYS = PROFILE["job_preferences"]["maximum_job_age_days"]
 MIN_SCORE = PROFILE["job_preferences"]["minimum_match_score"]
+MAX_AI_REVIEWS_PER_RUN = max(1, int(os.environ.get("MAX_AI_REVIEWS_PER_RUN", "12")))
 ROLE_TERMS = PROFILE["scoring"]["role_terms"]
 ROLE_FAMILIES = PROFILE["scoring"]["role_families"]
 TITLE_HARD_EXCLUDE_TERMS = tuple(PROFILE["scoring"]["title_hard_exclude_terms"])
@@ -383,9 +384,21 @@ def main():
         already_ai_reviewed = "IA REVIEW: OK" in existing_reason
         already_ai_rejected = "IA REVIEW: REJECT" in existing_reason
 
+        if already_ai_rejected:
+            skipped += 1
+            continue
+
         candidates.append(
             (job, score, reasons, already_ai_reviewed, already_ai_rejected)
         )
+
+    candidates.sort(
+        key=lambda item: (
+            item[1],
+            freshness_points(item[0].get("publication_date")),
+        ),
+        reverse=True,
+    )
 
     active_results = {}
     with ThreadPoolExecutor(max_workers=12) as executor:
@@ -433,6 +446,9 @@ def main():
                     already_ai_rejected,
                 )
 
+    ai_reviews_attempted = 0
+    ai_unavailable = False
+
     for url, (
         active,
         job,
@@ -440,32 +456,73 @@ def main():
         reasons,
         already_ai_reviewed,
         already_ai_rejected,
-    ) in active_results.items():
+    ) in sorted(
+        active_results.items(),
+        key=lambda item: (
+            item[1][2],
+            freshness_points(item[1][1].get("publication_date")),
+        ),
+        reverse=True,
+    ):
         if not active:
             skipped += 1
             continue
 
         if already_ai_rejected:
             skipped += 1
-            print(f"Offre déjà rejetée par IA: {job.get('title')}")
             continue
 
         if not already_ai_reviewed:
+            if ai_reviews_attempted >= MAX_AI_REVIEWS_PER_RUN:
+                print(
+                    f"Limite IA atteinte ({MAX_AI_REVIEWS_PER_RUN}) -> "
+                    "suite reportée au prochain run."
+                )
+                break
+
+            ai_reviews_attempted += 1
             review = review_job(job, PROFILE)
+
+            if isinstance(review, dict) and review.get("_unavailable"):
+                ai_unavailable = True
+                print(
+                    f"IA temporairement indisponible ({review.get('_unavailable')}) -> "
+                    "suite reportée au prochain run."
+                )
+                break
+
             if not review:
                 skipped += 1
                 print(
-                    f"Offre non retenue: lecture IA indisponible ou invalide -> "
+                    f"Offre non retenue: lecture IA invalide -> "
                     f"{job.get('title')}"
                 )
                 continue
 
             if not bool(review.get("keep")):
                 skipped += 1
-                print(
-                    f"Offre rejetée par lecture IA: {job.get('title')} -> "
-                    f"{review.get('reason')}"
+                reject_reason = (
+                    "IA REVIEW: REJECT | "
+                    + str(review.get("reason") or "Contraintes non satisfaites")
                 )
+                reject_record = build_record(job, 0, [reject_reason])
+                reject_record["is_active"] = False
+                reject_record["application_status"] = "rejected"
+
+                try:
+                    if url in existing:
+                        (
+                            supabase
+                            .table("jobs")
+                            .update(reject_record)
+                            .eq("url", url)
+                            .execute()
+                        )
+                    else:
+                        supabase.table("jobs").insert(reject_record).execute()
+                    print(f"Offre rejetée et mémorisée: {job.get('title')}")
+                except Exception as exc:
+                    print(f"Erreur mémorisation rejet IA: {exc}")
                 continue
 
             reasons = [
@@ -501,6 +558,9 @@ def main():
     print(f"Nouvelles: {inserted}")
     print(f"Actualisées: {updated}")
     print(f"Écartées: {skipped}")
+    print(f"Revues IA tentées: {ai_reviews_attempted}")
+    if ai_unavailable:
+        print("Statut IA: limité -> candidates restantes reportées au prochain run.")
 
     if errors:
         print("Erreurs sources:")
