@@ -70,6 +70,7 @@ def main():
         .eq("is_active", True)
         .eq("email_sent", False)
         .gte("score", MIN_SCORE)
+        .ilike("score_reason", "%IA REVIEW: OK%")
         .gte("publication_date", cutoff)
         .order("score", desc=True)
         .order("publication_date", desc=True)
