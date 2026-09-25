@@ -45,6 +45,8 @@ def requalify_row(row):
 
 
 def main():
+    max_reviews = max(1, int(os.environ.get("MAX_AI_REQUALIFY", "20")))
+
     rows = (
         supabase
         .table("jobs")
@@ -52,42 +54,42 @@ def main():
             "id,title,company,location,url,description,publication_date,"
             "job_type,salary,remote,detected_language,score,score_reason"
         )
+        .eq("is_active", True)
+        .order("score", desc=True)
+        .limit(max_reviews)
         .execute()
         .data
         or []
     )
 
-    print(f"Offres à requalifier: {len(rows)}")
+    print(f"Offres à requalifier (plafond {max_reviews}): {len(rows)}")
     changed = 0
-    eligible = []
 
-    with ThreadPoolExecutor(max_workers=12) as executor:
-        futures = [
-            executor.submit(requalify_row, row)
-            for row in rows
-        ]
-        for future in as_completed(futures):
-            job_id, score, reason = future.result()
-            row = next((item for item in rows if item["id"] == job_id), None)
-            if row is None:
-                continue
+    for row in rows:
+        try:
+            job_id, score, reason = requalify_row(row)
             old_score = row.get("score")
-            if score >= 40:
-                eligible.append(row.get("title") or "Sans titre")
-            if old_score == score:
-                continue
-            supabase.table("jobs").update(
-                {
-                    "score": score,
-                    "score_reason": reason,
-                }
-            ).eq("id", job_id).execute()
-            changed += 1
+
+            if old_score != score:
+                supabase.table("jobs").update(
+                    {
+                        "score": score,
+                        "score_reason": reason,
+                    }
+                ).eq("id", job_id).execute()
+                changed += 1
+
+            print(f"Requalification: {row.get("title")} -> score={score}")
+
+        except Exception as exc:
+            print(f"Erreur requalification {row.get("title")}: {exc}")
+            continue
+
+        if "indisponible" in str(reason).lower():
+            print("IA indisponible: arrêt pour préserver les quotas.")
+            break
 
     print(f"Scores modifiés: {changed}")
-    print(f"Offres >= 40 après requalification: {len(eligible)}")
-    for title in sorted(eligible)[:20]:
-        print(f"Éligible: {title}")
 
 
 if __name__ == "__main__":
