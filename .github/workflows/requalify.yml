@@ -10,9 +10,9 @@ jobs:
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      CLOUDFLARE_AI_MODEL: ${{ vars.CLOUDFLARE_AI_MODEL }}
+      GEMINI_API_KEY_LITE: ${{ secrets.GEMINI_API_KEY_LITE }}
+      GEMINI_API_KEY_37: ${{ secrets.GEMINI_API_KEY_37 }}
+      GEMINI_API_KEY_38: ${{ secrets.GEMINI_API_KEY_38 }}
 
     steps:
       - name: Télécharger le projet
