@@ -402,6 +402,7 @@ def main():
                     job,
                     score,
                     reasons,
+                    already_ai_reviewed,
                 )
 
     for url, (active, job, score, reasons, already_ai_reviewed) in active_results.items():
