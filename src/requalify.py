@@ -1,16 +1,46 @@
+import json
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from supabase import create_client
 from scanner import calculate_score
+from ai_writer import review_job
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_SERVICE_ROLE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
 supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+with open(
+    os.path.join(BASE_DIR, "config", "profile.json"),
+    "r",
+    encoding="utf-8",
+) as f:
+    PROFILE = json.load(f)
+
 
 def requalify_row(row):
     score, reasons = calculate_score(row)
+    if score < 40:
+        return row["id"], score, "; ".join(reasons)
+
+    review = review_job(row, PROFILE)
+    if not review:
+        return row["id"], 0, "IA REVIEW: indisponible/invalide"
+    if not bool(review.get("keep")):
+        return (
+            row["id"],
+            0,
+            "IA REVIEW: REJECT | " + str(review.get("reason") or ""),
+        )
+
+    reasons = [
+        "IA REVIEW: OK | "
+        + str(review.get("reason") or "")
+        + f" | anglais={review.get('english_status')}"
+        + f" | remote={review.get('remote_scope')}"
+        + f" | work_auth={review.get('work_authorization')}"
+    ] + reasons
     return row["id"], score, "; ".join(reasons)
 
 
@@ -20,7 +50,7 @@ def main():
         .table("jobs")
         .select(
             "id,title,company,location,url,description,publication_date,"
-            "job_type,salary,remote,detected_language,score"
+            "job_type,salary,remote,detected_language,score,score_reason"
         )
         .execute()
         .data
