@@ -262,7 +262,7 @@ def review_job(job, profile):
         "company": job.get("company"),
         "location": job.get("location"),
         "url": job.get("url"),
-        "description": str(job.get("description") or "")[:30000],
+        "description": str(job.get("description") or "")[:12000],
         "job_type": job.get("job_type"),
         "salary": job.get("salary"),
         "remote": bool(job.get("remote")),
