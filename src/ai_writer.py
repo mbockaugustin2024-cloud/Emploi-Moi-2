@@ -39,6 +39,7 @@ def _chat(messages, max_tokens=1200):
         "messages": messages,
         "temperature": 0.0,
         "max_tokens": max_tokens,
+        "response_format": {"type": "json_object"},
     }
 
     try:
@@ -87,6 +88,11 @@ def _chat(messages, max_tokens=1200):
                         response_text = message.get("content")
                         if isinstance(response_text, str) and response_text.strip():
                             return response_text
+                        reasoning_text = message.get("reasoning")
+                        if isinstance(reasoning_text, str) and reasoning_text.strip():
+                            match = re.search(r"\{.*\}", reasoning_text, flags=re.S)
+                            if match:
+                                return match.group(0)
 
         print(
             "Cloudflare AI response format inattendu: "
