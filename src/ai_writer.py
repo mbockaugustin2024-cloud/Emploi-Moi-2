@@ -53,14 +53,39 @@ def _chat(messages, max_tokens=1200):
             json=payload,
             timeout=TIMEOUT,
         )
-        response.raise_for_status()
+        if not response.ok:
+            try:
+                detail = response.text[:500]
+            except Exception:
+                detail = ""
+            print(
+                f"Cloudflare AI HTTP {response.status_code}: "
+                f"{detail.replace(os.environ.get('CLOUDFLARE_API_TOKEN', ''), '***')}"
+            )
+            return None
+
         data = response.json()
 
         if isinstance(data, dict) and data.get("success") is False:
+            print(
+                "Cloudflare AI response success=false: "
+                + str(data.get("errors") or data.get("messages") or "")[:500]
+            )
             return None
 
-        return data["choices"][0]["message"]["content"]
-    except (requests.RequestException, KeyError, IndexError, TypeError, ValueError):
+        try:
+            return data["choices"][0]["message"]["content"]
+        except (KeyError, IndexError, TypeError):
+            print(
+                "Cloudflare AI response format inattendu: "
+                + str(data)[:500]
+            )
+            return None
+    except requests.RequestException as exc:
+        print(f"Cloudflare AI request error: {exc}")
+        return None
+    except (KeyError, IndexError, TypeError, ValueError) as exc:
+        print(f"Cloudflare AI response error: {exc}")
         return None
 
 
