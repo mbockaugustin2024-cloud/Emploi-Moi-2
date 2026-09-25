@@ -380,18 +380,39 @@ def main():
 
         existing_row = existing.get(url)
         existing_reason = str((existing_row or {}).get("score_reason") or "")
-        already_ai_reviewed = "IA REVIEW:" in existing_reason
+        already_ai_reviewed = "IA REVIEW: OK" in existing_reason
+        already_ai_rejected = "IA REVIEW: REJECT" in existing_reason
 
-        candidates.append((job, score, reasons, already_ai_reviewed))
+        candidates.append(
+            (job, score, reasons, already_ai_reviewed, already_ai_rejected)
+        )
 
     active_results = {}
     with ThreadPoolExecutor(max_workers=12) as executor:
         futures = {
-            executor.submit(active_status, job): (job, score, reasons, already_ai_reviewed)
-            for job, score, reasons, already_ai_reviewed in candidates
+            executor.submit(active_status, job): (
+                job,
+                score,
+                reasons,
+                already_ai_reviewed,
+                already_ai_rejected,
+            )
+            for (
+                job,
+                score,
+                reasons,
+                already_ai_reviewed,
+                already_ai_rejected,
+            ) in candidates
         }
         for future in as_completed(futures):
-            job, score, reasons, already_ai_reviewed = futures[future]
+            (
+                job,
+                score,
+                reasons,
+                already_ai_reviewed,
+                already_ai_rejected,
+            ) = futures[future]
             try:
                 active_results[normalize_url(job.get("url"))] = (
                     future.result(),
@@ -399,6 +420,7 @@ def main():
                     score,
                     reasons,
                     already_ai_reviewed,
+                    already_ai_rejected,
                 )
             except Exception as exc:
                 print(f"Erreur vérification active {job.get('title')}: {exc}")
@@ -408,11 +430,24 @@ def main():
                     score,
                     reasons,
                     already_ai_reviewed,
+                    already_ai_rejected,
                 )
 
-    for url, (active, job, score, reasons, already_ai_reviewed) in active_results.items():
+    for url, (
+        active,
+        job,
+        score,
+        reasons,
+        already_ai_reviewed,
+        already_ai_rejected,
+    ) in active_results.items():
         if not active:
             skipped += 1
+            continue
+
+        if already_ai_rejected:
+            skipped += 1
+            print(f"Offre déjà rejetée par IA: {job.get('title')}")
             continue
 
         if not already_ai_reviewed:
