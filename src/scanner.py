@@ -33,9 +33,12 @@ ENGLISH_HARD_PATTERNS = tuple(PROFILE["scoring"]["english_hard_patterns"])
 REMOTE_LOCATION_EXCLUDE_PATTERNS = tuple(PROFILE["scoring"]["remote_location_exclude_patterns"])
 
 ENGLISH_HARD_REQUIRED = re.compile(
-    r"\b(?:native|fluent|advanced|professional)\s+english\b"
+    r"\b(?:native|fluent|advanced|professional|excellent|strong|very\s+good|upper\s+intermediate|intermediate)\s+english\b"
     r"|\benglish\s+(?:is\s+)?(?:required|mandatory|essential)\b"
-    r"|\benglish\s+proficiency\b|\bc1\s+english\b|\bc2\s+english\b",
+    r"|\benglish\s+(?:fluency|proficiency)\b"
+    r"|\b(?:b2|c1|c2)\s+english\b"
+    r"|\benglish\s+working\s+proficiency\b"
+    r"|\bbusiness\s+english\s+required\b",
     re.I,
 )
 ENGLISH_OPTIONAL = re.compile(
@@ -282,6 +285,9 @@ def calculate_score(job):
 
     if OTHER_LANGUAGE_HARD_REQUIRED.search(searchable):
         return 0, ["langue supplémentaire requise à un niveau avancé"]
+
+    if any(term_matches(searchable, pattern) for pattern in ENGLISH_HARD_PATTERNS):
+        return 0, ["anglais professionnel/courant ou niveau équivalent requis"]
 
     if (
         ENGLISH_HARD_REQUIRED.search(searchable)
