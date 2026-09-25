@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from urllib.parse import urlsplit, urlunsplit
 
 import requests
+import xml.etree.ElementTree as ET
 
 UA = {"User-Agent": "Emploi-Moi/1.0 (+job scanner)"}
 TIMEOUT = 25
@@ -135,6 +136,135 @@ def jobicy_jobs():
         )
     return jobs
 
+
+
+def himalayas_jobs():
+    jobs = []
+    queries = [
+        "customer support",
+        "customer service",
+        "call center",
+        "sales",
+        "teleprospection",
+    ]
+    seen = set()
+
+    for query in queries:
+        try:
+            payload = get_json(
+                "https://himalayas.app/jobs/api/search",
+                params={"q": query, "sort": "recent", "page": 1},
+            )
+            for j in payload.get("jobs", []) if isinstance(payload, dict) else []:
+                if not isinstance(j, dict):
+                    continue
+
+                url = normalize_url(j.get("applicationLink"))
+                guid = str(j.get("guid") or url or "")
+                if not url or guid in seen:
+                    continue
+                seen.add(guid)
+
+                restrictions = j.get("locationRestrictions") or []
+                location = (
+                    ", ".join(str(x) for x in restrictions)
+                    if restrictions
+                    else "Worldwide / Remote"
+                )
+
+                description = j.get("description") or j.get("excerpt") or ""
+                salary = None
+                if j.get("minSalary") is not None or j.get("maxSalary") is not None:
+                    salary = (
+                        f"{j.get('minSalary') or ''} - {j.get('maxSalary') or ''} "
+                        f"{j.get('currency') or ''} {j.get('salaryPeriod') or 'annual'}"
+                    ).strip()
+
+                jobs.append(
+                    {
+                        "title": j.get("title"),
+                        "company": j.get("companyName"),
+                        "location": location,
+                        "url": url,
+                        "description": description,
+                        "publication_date": j.get("pubDate"),
+                        "job_type": j.get("employmentType"),
+                        "salary": salary,
+                        "source_job_id": guid,
+                        "source": "Himalayas",
+                        "category": (
+                            ", ".join(j.get("category") or [])
+                            if isinstance(j.get("category"), list)
+                            else str(j.get("category") or "Remote")
+                        ),
+                        "remote": True,
+                        "detected_language": None,
+                    }
+                )
+        except Exception as error:
+            print(f"Himalayas query '{query}': {error}")
+
+    return jobs
+
+
+def _rss_items(url, source_name, category_name):
+    response = requests.get(url, headers=UA, timeout=TIMEOUT)
+    response.raise_for_status()
+    root = ET.fromstring(response.content)
+    jobs = []
+
+    for item in root.findall(".//item"):
+        title = item.findtext("title")
+        link = item.findtext("link")
+        description = item.findtext("description") or ""
+        pub_date = item.findtext("pubDate")
+        guid = item.findtext("guid") or link
+
+        if not title or not link:
+            continue
+
+        jobs.append(
+            {
+                "title": title,
+                "company": None,
+                "location": "Remote — see listing",
+                "url": normalize_url(link),
+                "description": description,
+                "publication_date": pub_date,
+                "job_type": "Remote",
+                "salary": None,
+                "source_job_id": str(guid or ""),
+                "source": source_name,
+                "category": category_name,
+                "remote": True,
+                "detected_language": None,
+            }
+        )
+
+    return jobs
+
+
+def weworkremotely_jobs():
+    feeds = [
+        (
+            "https://weworkremotely.com/categories/remote-customer-support-jobs.rss",
+            "Customer Support",
+        ),
+        (
+            "https://weworkremotely.com/categories/remote-sales-and-marketing-jobs.rss",
+            "Sales and Marketing",
+        ),
+    ]
+    jobs = []
+
+    for url, category in feeds:
+        try:
+            jobs.extend(_rss_items(url, "We Work Remotely", category))
+        except Exception as error:
+            print(f"We Work Remotely ({category}): {error}")
+
+    return jobs
+
 def arbeitnow_jobs(
     endpoint="https://www.arbeitnow.com/api/job-board-api",
     pages=2,
@@ -179,6 +309,8 @@ def fetch_all_sources():
         ("Remotive", remotive_jobs),
         ("Remote OK", remoteok_jobs),
         ("Jobicy", jobicy_jobs),
+        ("Himalayas", himalayas_jobs),
+        ("We Work Remotely", weworkremotely_jobs),
         ("Arbeitnow", arbeitnow_jobs),
         (
             "Arbeitnow Visa Sponsorship",
