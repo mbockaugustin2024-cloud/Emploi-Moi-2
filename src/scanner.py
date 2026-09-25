@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 import requests
 from supabase import create_client
 from sources import fetch_all_sources, normalize_url
+from ai_writer import review_job
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 with open(os.path.join(BASE_DIR, "config", "profile.json"), "r", encoding="utf-8") as f:
@@ -309,7 +310,7 @@ def existing_by_url():
     rows = (
         supabase
         .table("jobs")
-        .select("url,score,email_sent,cv_url,cover_letter_url")
+        .select("url,score,email_sent,cv_url,cover_letter_url,score_reason")
         .execute()
         .data
         or []
@@ -372,22 +373,27 @@ def main():
             skipped += 1
             continue
 
-        candidates.append((job, score, reasons))
+        existing_row = existing.get(url)
+        existing_reason = str((existing_row or {}).get("score_reason") or "")
+        already_ai_reviewed = "IA REVIEW:" in existing_reason
+
+        candidates.append((job, score, reasons, already_ai_reviewed))
 
     active_results = {}
     with ThreadPoolExecutor(max_workers=12) as executor:
         futures = {
-            executor.submit(active_status, job): (job, score, reasons)
-            for job, score, reasons in candidates
+            executor.submit(active_status, job): (job, score, reasons, already_ai_reviewed)
+            for job, score, reasons, already_ai_reviewed in candidates
         }
         for future in as_completed(futures):
-            job, score, reasons = futures[future]
+            job, score, reasons, already_ai_reviewed = futures[future]
             try:
                 active_results[normalize_url(job.get("url"))] = (
                     future.result(),
                     job,
                     score,
                     reasons,
+                    already_ai_reviewed,
                 )
             except Exception as exc:
                 print(f"Erreur vérification active {job.get('title')}: {exc}")
@@ -398,10 +404,39 @@ def main():
                     reasons,
                 )
 
-    for url, (active, job, score, reasons) in active_results.items():
+    for url, (active, job, score, reasons, already_ai_reviewed) in active_results.items():
         if not active:
             skipped += 1
             continue
+
+        if not already_ai_reviewed:
+            review = review_job(job, PROFILE)
+            if not review:
+                skipped += 1
+                print(
+                    f"Offre non retenue: lecture IA indisponible ou invalide -> "
+                    f"{job.get('title')}"
+                )
+                continue
+
+            if not bool(review.get("keep")):
+                skipped += 1
+                print(
+                    f"Offre rejetée par lecture IA: {job.get('title')} -> "
+                    f"{review.get('reason')}"
+                )
+                continue
+
+            reasons = [
+                "IA REVIEW: OK | "
+                + str(review.get("reason") or "").strip()
+                + f" | anglais={review.get('english_status')}"
+                + f" | remote={review.get('remote_scope')}"
+                + f" | work_auth={review.get('work_authorization')}"
+            ] + reasons
+        else:
+            previous = str((existing.get(url) or {}).get("score_reason") or "").strip()
+            reasons = ([previous] if previous else []) + reasons
 
         record = build_record(job, score, reasons)
         try:
