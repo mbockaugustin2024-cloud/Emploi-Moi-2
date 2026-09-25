@@ -14,22 +14,33 @@ MODELS = {
     "38": "gemini-3.8-flash",
 }
 
+_DISABLED_TIERS = set()
+
 
 def _parse_json(text):
     if not text:
         return None
-    text = text.strip()
+
+    text = str(text).strip()
+    text = text.replace("```json", "").replace("```", "").strip()
+
     try:
         return json.loads(text)
     except json.JSONDecodeError:
-        match = re.search(r"\{.*\}", text, flags=re.S)
-        if not match:
-            return None
-        try:
-            return json.loads(match.group(0))
-        except json.JSONDecodeError:
-            return None
+        pass
 
+    decoder = json.JSONDecoder()
+    for start in ("{", "["):
+        position = text.find(start)
+        if position < 0:
+            continue
+        try:
+            value, _ = decoder.raw_decode(text[position:])
+            return value
+        except json.JSONDecodeError:
+            continue
+
+    return None
 
 def _key_for(tier):
     return os.environ.get(
@@ -93,6 +104,11 @@ def _chat_gemini(messages, tier, max_output_tokens=1200, thinking_level="minimal
             print(f"Gemini {model} HTTP 429: quota/rate limit reached.")
             return None, "quota"
 
+        if response.status_code in (500, 502, 503, 504):
+            detail = response.text[:500]
+            print(f"Gemini {model} HTTP {response.status_code}: {detail}")
+            return None, "unavailable"
+
         if not response.ok:
             detail = response.text[:500]
             print(f"Gemini {model} HTTP {response.status_code}: {detail}")
@@ -147,16 +163,23 @@ def _run_models(messages, max_output_tokens=1200, starting_tier="lite"):
 
 
 def _run_single_tier(messages, tier, max_output_tokens=1200, thinking_level="low"):
+    if tier in _DISABLED_TIERS:
+        return None, "disabled"
+
     content, status = _chat_gemini(
         messages,
         tier,
         max_output_tokens=max_output_tokens,
         thinking_level=thinking_level,
     )
+
+    if status in {"quota", "unavailable"}:
+        _DISABLED_TIERS.add(tier)
+
     if content:
         print(f"Gemini {MODELS[tier]} utilisé.")
-    return content
 
+    return content, status
 
 def generate_ai_content(job, profile):
     experience_text = "\n".join(
@@ -285,7 +308,7 @@ def review_job(job, profile):
         },
     ]
 
-    lite_content = _run_single_tier(
+    lite_content, lite_status = _run_single_tier(
         messages,
         "lite",
         max_output_tokens=1200,
@@ -324,7 +347,7 @@ def review_job(job, profile):
         },
     ]
 
-    second_content = _run_single_tier(
+    second_content, second_status = _run_single_tier(
         tier37_messages,
         "37",
         max_output_tokens=1300,
@@ -357,7 +380,7 @@ def review_job(job, profile):
         },
     ]
 
-    third_content = _run_single_tier(
+    third_content, third_status = _run_single_tier(
         third_messages,
         "38",
         max_output_tokens=1400,
@@ -371,4 +394,10 @@ def review_job(job, profile):
         return third
 
     print("Gemini 3.8 Flash: réponse invalide/incomplète.")
+
+    statuses = (lite_status, second_status, third_status)
+    for status in statuses:
+        if status in {"quota", "unavailable"}:
+            return {"_unavailable": status}
+
     return None
