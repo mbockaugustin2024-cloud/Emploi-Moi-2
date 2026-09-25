@@ -33,14 +33,12 @@ def _chat(messages, max_tokens=1200):
     model = os.environ.get("CLOUDFLARE_AI_MODEL", DEFAULT_MODEL).strip() or DEFAULT_MODEL
     url = (
         f"https://api.cloudflare.com/client/v4/accounts/"
-        f"{account_id}/ai/v1/chat/completions"
+        f"{account_id}/ai/run/{model}"
     )
     payload = {
-        "model": model,
         "messages": messages,
         "temperature": 0.0,
         "max_tokens": max_tokens,
-        "stream": False,
     }
 
     try:
@@ -73,14 +71,28 @@ def _chat(messages, max_tokens=1200):
             )
             return None
 
-        try:
-            return data["choices"][0]["message"]["content"]
-        except (KeyError, IndexError, TypeError):
-            print(
-                "Cloudflare AI response format inattendu: "
-                + str(data)[:500]
-            )
-            return None
+        if isinstance(data, dict):
+            result = data.get("result")
+            if isinstance(result, dict):
+                response_text = result.get("response")
+                if isinstance(response_text, str) and response_text.strip():
+                    return response_text
+
+            choices = data.get("choices")
+            if isinstance(choices, list) and choices:
+                choice = choices[0]
+                if isinstance(choice, dict):
+                    message = choice.get("message")
+                    if isinstance(message, dict):
+                        response_text = message.get("content")
+                        if isinstance(response_text, str) and response_text.strip():
+                            return response_text
+
+        print(
+            "Cloudflare AI response format inattendu: "
+            + str(data)[:700]
+        )
+        return None
     except requests.RequestException as exc:
         print(f"Cloudflare AI request error: {exc}")
         return None
@@ -220,6 +232,7 @@ def review_job(job, profile):
     content = _chat(messages, max_tokens=1200)
     parsed = _parse_json(content)
     if not isinstance(parsed, dict):
+        print("Cloudflare AI review JSON invalide.")
         return None
 
     required = (
